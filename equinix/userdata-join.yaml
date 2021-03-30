@@ -1,0 +1,13 @@
+#cloud-config
+server_url: https://<new_cluster_server_ip>:6443
+token: token           # replace with the token you set when creating a new cluster
+os:
+  ssh_authorized_keys:
+  - ssh-rsa ...        # replace with your public key
+  password: p@ssword   # replace with a your password
+install:
+  mode: join
+  mgmt_interface: eth0
+  device: /dev/sda
+  iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
+  tty: ttyS1,115200n8

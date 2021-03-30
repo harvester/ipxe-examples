@@ -1,0 +1,1 @@
+**NOTE**: This folder contains sample files to use iPXE firmware to provision Harvester clusters. **DO NOT** host these files on public server since the configuration file contains harvester cluster credentials.

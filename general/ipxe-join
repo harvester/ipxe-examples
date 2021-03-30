@@ -1,0 +1,6 @@
+#!ipxe
+
+kernel https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64 k3os.mode=install k3os.debug console=ttyS1,115200 harvester.install.automatic=true harvester.install.config_url=https://raw.githubusercontent.com/bk201/hvst-ipxe/main/general/config-join.yaml
+initrd https://releases.rancher.com/harvester/master/harvester-initrd-amd64
+boot
+

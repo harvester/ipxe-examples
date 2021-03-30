@@ -1,0 +1,13 @@
+server_url: https://<YOUR_CLUSTER_IP_HERE>:6443
+token: token             # Replace with a desired token
+os:
+  hostname: node2        # Set a hostname. This can be omitted if DHCP server offers hostnames.
+  ssh_authorized_keys:
+  - ssh-rsa ...          # Replace with your public key
+  password: p@ssword     # Replace with a your password
+install:
+  mode: join
+  mgmt_interface: eth0   # The management interface name
+  device: /dev/sda       # The target disk to install
+  iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
+#  tty: ttyS1,115200n8   # For machines without a VGA console

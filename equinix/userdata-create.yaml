@@ -1,0 +1,12 @@
+#cloud-config
+token: token           # replace with a desired token
+os:
+  ssh_authorized_keys:
+  - ssh-rsa ...        # replace with your public key
+  password: p@ssword   # replace with a your password
+install:
+  mode: create
+  mgmt_interface: eth0
+  device: /dev/sda
+  iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
+  tty: ttyS1,115200n8
