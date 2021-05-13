@@ -1,0 +1,23 @@
+---
+- name: install isc-dhcp-server
+  apt:
+    name: isc-dhcp-server
+    state: present
+
+- name: configure isc-dhcp-server interface
+  copy:
+    src: isc-dhcp-server
+    dest: /etc/default/
+  notify: restart dhcp
+
+- name: configure ipxe.conf
+  copy:
+    src: ipxe.conf
+    dest: /etc/dhcp/
+  notify: restart dhcp
+
+- name: configure dhcpd.conf
+  template:
+    src: dhcpd.conf.j2
+    dest: /etc/dhcp/dhcpd.conf
+  notify: restart dhcp
