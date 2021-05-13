@@ -1,0 +1,61 @@
+---
+- name: Setup Harvester
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+  - name: create "Installing PXE Server" message
+    shell: >
+      figlet "Installing PXE Server" 2>/dev/null || echo "Installing PXE Server"
+    register: figlet_result
+
+  - name: print Installing PXE Server
+    debug:
+      msg: "{{ figlet_result.stdout }}"
+
+  - name: install PXE server
+    shell: >
+      vagrant up pxe_server
+    register: pxe_server_installation_result
+
+  - name: display PXE server installation result
+    debug:
+      msg: "{{ pxe_server_installation_result.stdout }}"
+
+  - name: get the IP address of pxe_server
+    shell: |
+      vagrant ssh-config pxe_server 2>/dev/null | grep HostName | awk '{ print $2 }'
+    register: get_pxe_server_ip_result
+    until: get_pxe_server_ip_result != ""
+    retries: 10
+    delay: 60
+
+  - name: set pxe_server_ip fact
+    set_fact:
+      pxe_server_ip: "{{ get_pxe_server_ip_result.stdout }}"
+
+  - name: wait for PXE server HTTP port to get ready
+    uri:
+      url: "http://{{ pxe_server_ip }}/harvester/config-create.yaml"
+      status_code: 200
+    register: pxe_server_http_result
+    until: pxe_server_http_result.status == 200
+    retries: 10
+    delay: 30
+
+  - name: boot Harvester nodes
+    include: boot_harvester_node.yml
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
+
+  - name: create "Installation Completed" message
+    shell: >
+      figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
+    register: figlet_result
+
+  - name: print "Installation Completed"
+    debug:
+      msg: "{{ figlet_result.stdout }}"
+

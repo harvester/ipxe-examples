@@ -1,0 +1,89 @@
+---
+##########################################################################
+# NOTE: this is a YAML file so please pay close attention to the leading #
+# spaces as they are significant.                                        #
+##########################################################################
+
+#
+# harvester_iso_url
+# harvester_kernel_url
+# harvester_initrd_url
+#
+# Harvester media to install. The URL scheme can be either 'http', 'https', or
+# 'file'. If the URL scheme is 'file', the given media will be copied from the
+# local file system instead of downloading from a remote location.
+harvester_iso_url: https://releases.rancher.com/harvester/v0.2.0/harvester-amd64.iso
+harvester_kernel_url: https://releases.rancher.com/harvester/v0.2.0/harvester-vmlinuz-amd64
+harvester_ramdisk_url: https://releases.rancher.com/harvester/v0.2.0/harvester-initrd-amd64
+
+#
+# harvester_cluster_nodes
+#
+# Supported values are:
+#
+#  * 1: single node, no HA
+#  * 3: 3-node cluster, HA
+#
+harvester_cluster_nodes: 1
+
+#
+# network_config
+#
+# Harvester network configurations. Make sure the cluster IPs are on the same
+# subnet as the DHCP server. Pre-assign the IPs and MACs for the Harvester
+# nodes.
+#
+# NOTE: Random MAC addresses are generated with the following command:
+# printf '02:00:00:%02X:%02X:%02X\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256))
+# Thanks to https://stackoverflow.com/questions/8484877/mac-address-generator-in-python
+# If any of the generated MAC addresses is in conflict with an existing one in
+# your environment, please use the above command to regenerate and replace
+# the conflicting one.
+#
+harvester_network_config:
+  dhcp_server:
+    ip: 192.168.0.254
+    subnet: 192.168.0.0
+    netmask: 255.255.255.0
+    range: 192.168.0.10 192.168.0.20
+  # Reserve these IPs for the Harvester cluster. Make sure these are outside
+  # the range of DHCP so they don't get served out by the DHCP server
+  cluster:
+    - ip: 192.168.0.30
+      mac: 02:00:00:0D:62:E2
+    - ip: 192.168.0.31
+      mac: 02:00:00:35:86:92
+    - ip: 192.168.0.32
+      mac: 02:00:00:2F:F2:2A
+
+#
+# harvester_config
+#
+# Harvester system configurations.
+#
+harvester_config:
+  # static token for cluster authentication
+  token: token
+
+  # Public keys to add to authorized_keys of each node.
+  ssh_authorized_keys:
+    # Vagrant default unsecured SSH public key
+    - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key
+
+  # password to for the `rancher` user to login to the Harvester nodes
+  password: p@ssword
+
+#
+# harvester_node_config
+#
+# Harvester node-specific configurations.
+#
+harvester_node_config:
+  # number of CPUs assigned to each node
+  cpu: 4
+
+  # memory size for each node, in MBytes
+  memory: 8192
+
+  # disk size for each node
+  disk_size: 100G

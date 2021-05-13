@@ -1,0 +1,47 @@
+---
+- name: create Harvester config dir
+  file:
+    path: /var/www/harvester
+    state: directory
+
+- name: download Harvester kernel
+  include: _download_media.yml
+  vars:
+    harvester_media_url: "{{ settings['harvester_kernel_url'] }}"
+
+- name: download Harvester ramdisk
+  include: _download_media.yml
+  vars:
+    harvester_media_url: "{{ settings['harvester_ramdisk_url'] }}"
+
+- name: download Harvester ISO
+  include: _download_media.yml
+  vars:
+    harvester_media_url: "{{ settings['harvester_iso_url'] }}"
+
+- name: copy config-create.yml and config-join.yml
+  template:
+    src: "{{ item }}.j2"
+    dest: /var/www/harvester/{{ item }}
+    owner: www-data
+    mode: 0640
+  with_items:
+    - config-create.yaml
+    - config-join.yaml
+
+- name: chown dir
+  file:
+    path: /var/www/harvester/
+    owner: www-data
+    recurse: yes
+
+- name: create boot entry for the first node
+  template:
+    src: ipxe-create.j2
+    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][0]['mac']|lower }}
+
+- name: create boot entry for the cluster members
+  template:
+    src: ipxe-join.j2
+    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][item|int]['mac']|lower }}
+  with_sequence: 1-2

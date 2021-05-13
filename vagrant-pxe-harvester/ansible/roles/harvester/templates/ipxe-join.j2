@@ -1,0 +1,6 @@
+#!ipxe
+
+kernel http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/harvester-vmlinuz-amd64
+initrd http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/harvester-initrd-amd64
+imgargs harvester-vmlinuz-amd64 initrd=harvester-initrd-amd64 k3os.mode=install k3os.debug console=tty0 harvester.install.automatic=true harvester.install.config_url=http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/config-join.yaml
+boot
