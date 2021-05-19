@@ -6,5 +6,6 @@ This project contains examples to perform iPXE-based automatic installation of H
 
 | Platform | Doc |
 |-|-|
-| Baremetal machines or VMs | [link](./general/README.md) |
-| [Equinix Metal](https://metal.equinix.com/) | [link](./equinix/README.md) |
+| Baremetal machines or VMs | [link](./general/) |
+| [Equinix Metal](https://metal.equinix.com/) | [link](./equinix/) |
+| [Vagrant](https://www.vagrantup.com/) | [link](./vagrant-pxe-harvester/) |
