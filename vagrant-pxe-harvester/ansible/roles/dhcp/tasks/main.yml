@@ -3,6 +3,7 @@
   apt:
     name: isc-dhcp-server
     state: present
+    update_cache: yes
 
 - name: configure isc-dhcp-server interface
   copy:
