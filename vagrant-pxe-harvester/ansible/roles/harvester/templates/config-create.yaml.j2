@@ -2,6 +2,7 @@
 
 token: {{ settings['harvester_config']['token'] }}
 os:
+  hostname: harvester-node-0
   ssh_authorized_keys:
 {% for ssh_key in settings['harvester_config']['ssh_authorized_keys'] %}
     - {{ ssh_key }}
@@ -9,7 +10,7 @@ os:
   password: {{ settings['harvester_config']['password'] }}
 install:
   mode: create
-  mgmt_interface: eth0   # The management interface name
+  mgmt_interface: eth1   # The management interface name
   device: /dev/sda       # The target disk to install
   iso_url: http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/harvester-amd64.iso
 #  tty: ttyS1,115200n8   # For machines without a VGA console

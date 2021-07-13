@@ -19,12 +19,9 @@ harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-i
 #
 # harvester_cluster_nodes
 #
-# Supported values are:
+# NOTE: keep in mind that you need at least 3 nodes to make a cluster
 #
-#  * 1: single node, no HA
-#  * 3: 3-node cluster, HA
-#
-harvester_cluster_nodes: 1
+harvester_cluster_nodes: 3
 
 #
 # network_config
@@ -45,16 +42,28 @@ harvester_network_config:
     ip: 192.168.0.254
     subnet: 192.168.0.0
     netmask: 255.255.255.0
-    range: 192.168.0.10 192.168.0.20
+    range: 192.168.0.50 192.168.0.130
   # Reserve these IPs for the Harvester cluster. Make sure these are outside
   # the range of DHCP so they don't get served out by the DHCP server
   cluster:
     - ip: 192.168.0.30
       mac: 02:00:00:0D:62:E2
+      cpu: 2
+      memory: 8192
+      disk_size: 50G
     - ip: 192.168.0.31
       mac: 02:00:00:35:86:92
+      cpu: 2
+      memory: 8192
+      disk_size: 30G
     - ip: 192.168.0.32
       mac: 02:00:00:2F:F2:2A
+      cpu: 6
+      memory: 16384
+    - ip: 192.168.0.33
+      mac: 02:00:00:A7:E6:FF
+      cpu: 2
+      memory: 8192
 
 #
 # harvester_config

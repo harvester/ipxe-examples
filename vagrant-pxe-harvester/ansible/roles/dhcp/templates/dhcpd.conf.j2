@@ -24,7 +24,7 @@ subnet {{ settings['harvester_network_config']['dhcp_server']['subnet'] }} netma
     }
 }
 
-{% for node_number in range(3) %}
+{% for node_number in range(settings['harvester_cluster_nodes']) %}
 host harvest_node_{{ node_number }} {
     hardware ethernet {{ settings['harvester_network_config']['cluster'][node_number]['mac'] }};
     fixed-address {{ settings['harvester_network_config']['cluster'][node_number]['ip'] }};
