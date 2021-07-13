@@ -10,12 +10,12 @@
 
 - name: boot Harvester Node {{ node_number }}
   shell: >
-    vagrant up harvester_node_{{ node_number }}
+    vagrant up harvester-node-{{ node_number }}
   register: harvester_node_boot_result
 
 - name: get the IP address of Harvester Node {{ node_number }}
   shell: |
-    vagrant ssh-config harvester_node_{{ node_number }} 2>/dev/null | grep HostName | awk '{ print $2 }'
+    vagrant ssh-config harvester-node-{{ node_number }} 2>/dev/null | grep HostName | awk '{ print $2 }'
   register: get_harvester_node_ip_result
   until: get_harvester_node_ip_result.stdout != ""
   retries: 10
