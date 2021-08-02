@@ -1,5 +1,5 @@
 #cloud-config
-server_url: https://<new_cluster_server_ip>:6443
+server_url: https://<new_cluster_server_ip>:8443
 token: token           # replace with the token you set when creating a new cluster
 os:
   ssh_authorized_keys:

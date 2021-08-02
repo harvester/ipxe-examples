@@ -13,7 +13,7 @@ Edit the `ipxe-install` file:
 ```
 #!ipxe
 
-kernel https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64 k3os.mode=install k3os.debug console=ttyS1,115200 harvester.install.automatic=true harvester.install.config_url=https://metadata.platformequinix.com/userdata
+kernel https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64 ip=dhcp rd.cos.disable rd.live.debug=1 rd.noverifyssl root=live:https://releases.rancher.com/harvester/master/harvester-rootfs-amd64.squashfs console=ttyS1,115200 harvester.install.automatic=true harvester.install.config_url=https://metadata.platformequinix.com/userdata
 initrd https://releases.rancher.com/harvester/master/harvester-initrd-amd64
 boot
 ```
@@ -68,7 +68,7 @@ The only difference is in the [userdata](./userdata-join.yaml):
 
 ```yaml
 #cloud-config
-server_url: https://<new_cluster_server_ip>:6443
+server_url: https://<new_cluster_server_ip>:8443
 token: token  # replace with the token you set when creating a new cluster
 os:
   ssh_authorized_keys:
