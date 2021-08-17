@@ -27,7 +27,7 @@
 
 - name: wait for Harvester Node {{ harvester_node_ip }} to get ready
   uri:
-    url: "https://{{ harvester_node_ip }}:30443/v1-public/auth-modes"
+    url: "https://{{ harvester_node_ip }}:30443"
     validate_certs: no
     status_code: 200
   register: auth_modes_lookup_result
