@@ -8,28 +8,21 @@
   debug:
     msg: "{{ figlet_result.stdout }}"
 
+- name: set Harvester Node IP fact
+  set_fact:
+    harvester_node_ip: "{{ harvester_network_config['cluster'][node_number | int]['ip'] }}"
+
 - name: boot Harvester Node {{ node_number }}
   shell: >
     vagrant up harvester-node-{{ node_number }}
   register: harvester_node_boot_result
-
-- name: get the IP address of Harvester Node {{ node_number }}
-  shell: |
-    vagrant ssh-config harvester-node-{{ node_number }} 2>/dev/null | grep HostName | awk '{ print $2 }'
-  register: get_harvester_node_ip_result
-  until: get_harvester_node_ip_result.stdout != ""
-  retries: 10
-  delay: 60
-
-- name: set Harvester Node IP fact
-  set_fact:
-    harvester_node_ip: "{{ get_harvester_node_ip_result.stdout }}"
 
 - name: wait for Harvester Node {{ harvester_node_ip }} to get ready
   uri:
     url: "https://{{ harvester_node_ip }}:30443"
     validate_certs: no
     status_code: 200
+    timeout: 120
   register: auth_modes_lookup_result
   until: auth_modes_lookup_result.status == 200
   retries: 20
