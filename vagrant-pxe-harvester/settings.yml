@@ -45,11 +45,15 @@ harvester_network_config:
     range: 192.168.0.50 192.168.0.130
   # Reserve these IPs for the Harvester cluster. Make sure these are outside
   # the range of DHCP so they don't get served out by the DHCP server
+  vip:
+    ip: 192.168.0.131
+    mode: DHCP
+    mac: 02:00:00:03:3D:61
   cluster:
     - ip: 192.168.0.30
       mac: 02:00:00:0D:62:E2
       cpu: 4
-      memory: 8192
+      memory: 16384
       disk_size: 60G
     - ip: 192.168.0.31
       mac: 02:00:00:35:86:92
