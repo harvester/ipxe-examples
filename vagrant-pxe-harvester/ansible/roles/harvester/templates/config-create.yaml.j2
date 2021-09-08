@@ -13,8 +13,11 @@ install:
   mgmt_interface: eth1   # The management interface name
   networks:
     - interface: eth0
-      method: dhcp
+      method: DHCP
   device: /dev/sda       # The target disk to install
   iso_url: http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/harvester-amd64.iso
 #  tty: ttyS1,115200n8   # For machines without a VGA console
   tty: ttyS0
+  vip: {{ settings['harvester_network_config']['vip']['ip'] }}
+  vip_mode: DHCP
+  vip_hw_addr: {{ settings['harvester_network_config']['vip']['mac'] }}
