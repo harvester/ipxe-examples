@@ -12,5 +12,5 @@ install:
 #  tty: ttyS1,115200n8   # For machines without a VGA console
 
   vip: 10.10.0.19
-  vip_mode: DHCP                   # Or static
+  vip_mode: dhcp                   # Or static
   vip_hw_addr: 52:54:00:ec:0e:0b   # Leave empty when vip_mode is static
