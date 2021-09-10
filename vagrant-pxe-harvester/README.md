@@ -24,7 +24,7 @@ Quick Start
 
 1.  Edit `settings.yml` to make sure the configuration satisfies your
     needs. The options are self-documented.
-2.  Run `set_harvester.sh`. This may take awhile (i.e. 30 minutes
+2.  Run `setup_harvester.sh`. This may take awhile (i.e. 30 minutes
     depending on configuration).
 3.  If successful, run `vagrant status` to see the status of the Vagrant
     boxes.
