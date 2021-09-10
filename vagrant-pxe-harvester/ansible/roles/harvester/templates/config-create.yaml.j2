@@ -10,9 +10,9 @@ os:
   password: {{ settings['harvester_config']['password'] }}
 install:
   mode: create
-  mgmt_interface: eth1   # The management interface name
+  mgmt_interface: {{ settings['harvester_network_config']['cluster'][0]['mgmt_interface'] }}  # The management interface name
   networks:
-    - interface: eth0
+    - interface: {{ settings['harvester_network_config']['cluster'][0]['vagrant_interface'] }}
       method: dhcp
   device: /dev/sda       # The target disk to install
   iso_url: http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/harvester-amd64.iso
