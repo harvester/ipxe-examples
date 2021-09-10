@@ -1,6 +1,6 @@
 #!ipxe
 
-kernel https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64 ip=dhcp rd.cos.disable rd.noverifyssl root=live:https://releases.rancher.com/harvester/master/harvester-rootfs-amd64.squashfs console=tty1 harvester.install.automatic=true harvester.install.config_url=https://raw.githubusercontent.com/harvester/ipxe-examples/main/general/config-create.yaml
+kernel https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64 ip=dhcp rd.cos.disable rd.noverifyssl net.ifnames=1 root=live:https://releases.rancher.com/harvester/master/harvester-rootfs-amd64.squashfs console=tty1 harvester.install.automatic=true harvester.install.config_url=https://raw.githubusercontent.com/harvester/ipxe-examples/main/general/config-create.yaml
 initrd https://releases.rancher.com/harvester/master/harvester-initrd-amd64
 boot
 
