@@ -6,11 +6,11 @@
 - name: copy Harvester media from local directory
   copy:
     src: "{{ harvester_download_url_facts['path'] }}"
-    dest: /var/www/harvester/
+    dest: /var/www/harvester/{{ media_filename }}
   when: harvester_download_url_facts['scheme']|lower == 'file'
 
 - name: download Harvester media
   get_url:
     url: "{{ harvester_media_url }}"
-    dest: /var/www/harvester/
+    dest: /var/www/harvester/{{ media_filename }}
   when: harvester_download_url_facts['scheme']|lower != 'file'
