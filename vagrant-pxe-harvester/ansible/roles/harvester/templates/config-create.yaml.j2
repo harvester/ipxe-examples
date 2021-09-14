@@ -19,5 +19,5 @@ install:
 #  tty: ttyS1,115200n8   # For machines without a VGA console
   tty: ttyS0
   vip: {{ settings['harvester_network_config']['vip']['ip'] }}
-  vip_mode: dhcp
+  vip_mode: {{ settings['harvester_network_config']['vip']['mode'] }}
   vip_hw_addr: {{ settings['harvester_network_config']['vip']['mac'] }}
