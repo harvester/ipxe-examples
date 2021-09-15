@@ -63,3 +63,9 @@
   vars:
     harvester_media_url: "{{ settings['harvester_iso_url'] }}"
     media_filename: "harvester-amd64.iso"
+
+- name: download Harvester Root FS
+  include: _download_media.yml
+  vars:
+    harvester_media_url: "{{ settings['harvester_rootfs_url'] }}"
+    media_filename: "harvester-rootfs-amd64.squashfs"
