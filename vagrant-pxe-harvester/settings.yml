@@ -15,6 +15,7 @@
 harvester_iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
 harvester_kernel_url: https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64
 harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-initrd-amd64
+harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-rootfs-amd64.squashfs
 
 #
 # harvester_cluster_nodes
