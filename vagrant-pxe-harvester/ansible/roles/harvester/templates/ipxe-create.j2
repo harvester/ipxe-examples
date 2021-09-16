@@ -2,5 +2,5 @@
 
 kernel http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/harvester-vmlinuz-amd64
 initrd http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/harvester-initrd-amd64
-imgargs harvester-vmlinuz-amd64 initrd=harvester-initrd-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.live.debug=1 rd.noverifyssl root=live:http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/harvester-rootfs-amd64.squashfs console=tty1 harvester.install.automatic=true harvester.install.config_url=http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/config-create.yaml
+imgargs harvester-vmlinuz-amd64 initrd=harvester-initrd-amd64 ip={{ boot_interface }}:dhcp net.ifnames=1 rd.cos.disable rd.live.debug=1 rd.noverifyssl root=live:http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/harvester-rootfs-amd64.squashfs console=tty1 harvester.install.automatic=true harvester.install.config_url=http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/config-create.yaml
 boot
