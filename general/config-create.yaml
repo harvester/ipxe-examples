@@ -6,7 +6,13 @@ os:
   password: p@ssword     # Replace with a your password
 install:
   mode: create
-  mgmt_interface: eth0   # The management interface name
+  networks:
+    harvester-mgmt:      # The management bond name. This is mandatory.
+      bond_option:
+        mode: balance-tlb
+      interfaces:
+      - name: eth0
+      method: dhcp
   device: /dev/sda       # The target disk to install
   iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
 #  tty: ttyS1,115200n8   # For machines without a VGA console

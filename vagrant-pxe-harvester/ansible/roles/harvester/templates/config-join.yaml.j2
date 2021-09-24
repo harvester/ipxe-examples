@@ -11,9 +11,14 @@ os:
   password: {{ settings['harvester_config']['password'] }}
 install:
   mode: join
-  mgmt_interface: {{ settings['harvester_network_config']['cluster'][node_number | int]['mgmt_interface'] }}   # The management interface name
   networks:
-    - interface: {{ settings['harvester_network_config']['cluster'][node_number | int]['vagrant_interface'] }}
+    {{ settings['harvester_network_config']['cluster'][node_number | int]['vagrant_interface'] }}:
+      method: dhcp
+    harvester-mgmt: # The management bond name. This is mandatory.
+      bond_option:
+        mode: balance-tlb
+      interfaces:
+      - name: {{ settings['harvester_network_config']['cluster'][node_number | int]['mgmt_interface'] }}
       method: dhcp
   device: /dev/sda       # The target disk to install
   iso_url: http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/harvester-amd64.iso

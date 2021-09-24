@@ -47,7 +47,13 @@ The `harvester.install.config_url=https://metadata.platformequinix.com/userdata`
       password: p@ssword  # replace with a your password
     install:
       mode: create
-      mgmt_interface: eth0
+      networks:
+        harvester-mgmt: # The management bond name. This is mandatory.
+          bond_option:
+            mode: balance-tlb
+          interfaces:
+          - name: eth0
+          method: dhcp
       device: /dev/sda
       iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
       tty: ttyS1,115200n8
@@ -76,7 +82,13 @@ os:
   password: p@ssword  # replace with a your password
 install:
   mode: join
-  mgmt_interface: eth0
+  networks:
+    harvester-mgmt: # The management bond name. This is mandatory.
+      bond_option:
+        mode: balance-tlb
+      interfaces:
+      - name: eth0
+      method: dhcp
   device: /dev/sda
   iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
   tty: ttyS1,115200n
