@@ -73,6 +73,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.boot boot_network
         # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
         libvirt.loader = '/usr/share/qemu/OVMF.fd'
+        libvirt.nic_model_type = 'e1000'
       end
     end
   end
