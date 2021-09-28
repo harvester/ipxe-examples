@@ -62,12 +62,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.cpu_mode = 'host-passthrough'
         libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
         libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
-        # NOTE: device must set to 'sda'
         libvirt.storage :file,
           size: @settings['harvester_network_config']['cluster'][node_number].key?('disk_size') ? @settings['harvester_network_config']['cluster'][node_number]['disk_size'] : @settings['harvester_node_config']['disk_size'],
           type: 'qcow2',
-          bus: 'sata',
-          device: 'sda'
+          bus: 'virtio',
+          device: 'vda'
         boot_network = {'network' => 'harvester'}
         libvirt.boot 'hd'
         libvirt.boot boot_network
