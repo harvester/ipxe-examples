@@ -12,10 +12,10 @@
 # Harvester media to install. The URL scheme can be either 'http', 'https', or
 # 'file'. If the URL scheme is 'file', the given media will be copied from the
 # local file system instead of downloading from a remote location.
-harvester_iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
-harvester_kernel_url: https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64
-harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-initrd-amd64
-harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-rootfs-amd64.squashfs
+harvester_iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
+harvester_kernel_url: https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64
+harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
+harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-master-rootfs-amd64.squashfs
 
 #
 # harvester_cluster_nodes
