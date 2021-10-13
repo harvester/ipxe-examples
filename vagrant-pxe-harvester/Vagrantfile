@@ -22,6 +22,10 @@ ENV['VAGRANT_DEFAULT_PROVIDER'] = "libvirt"
 @settings = YAML.load_file(File.join(@root_dir, "settings.yml"))
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  # continerd is taking more than 60 seconds to shutdown in SUSE platforms
+  # so increase the timeout to 120 seconds
+  config.vm.graceful_halt_timeout = 120
   
   config.vm.define :pxe_server do |pxe_server|
 
