@@ -10,3 +10,5 @@
     - role: http
     - role: ipxe
     - role: harvester
+    - role: proxy
+      when: settings['harvester_network_config']['offline']
