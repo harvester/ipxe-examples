@@ -30,3 +30,7 @@ install:
   vip: {{ settings['harvester_network_config']['vip']['ip'] }}
   vip_mode: {{ settings['harvester_network_config']['vip']['mode'] }}
   vip_hw_addr: {{ settings['harvester_network_config']['vip']['mac'] }}
+{% if settings['harvester_network_config']['offline'] %}
+systemSettings:
+  ui-source: bundled
+{% endif %}

@@ -13,12 +13,16 @@ log-facility local7;
 subnet {{ settings['harvester_network_config']['dhcp_server']['subnet'] }} netmask {{ settings['harvester_network_config']['dhcp_server']['netmask'] }} {
     range {{ settings['harvester_network_config']['dhcp_server']['range'] }};
     option domain-name-servers {{ settings['harvester_network_config']['dhcp_server']['ip'] }}, 8.8.8.8;
+    {% if settings['harvester_network_config']['offline'] %}
+    option routers {{ settings['harvester_network_config']['dhcp_server']['ip'] }};
+    {% else %}
     option routers {{ settings['harvester_network_config']['dhcp_server']['subnet'][:-1] }}1;
+    {% endif %}
     next-server {{ settings['harvester_network_config']['dhcp_server']['ip'] }};
 
    if exists user-class and option user-class = "iPXE" {
         filename "http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/${net1/mac}";
-    } elsif option arch != 00:00 { 
+    } elsif option arch != 00:00 {
         filename "ipxe/ipxe.efi";
     } else {
         filename "ipxe/undionly.kpxe";

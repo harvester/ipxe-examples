@@ -39,6 +39,10 @@ harvester_cluster_nodes: 3
 # the conflicting one.
 #
 harvester_network_config:
+  # Run as an airgapped environment that only has internet connectivity through an HTTP proxy.
+  # The HTTP proxy runs on DHCP server using port 3128
+  offline: false
+
   dhcp_server:
     ip: 192.168.0.254
     subnet: 192.168.0.0
