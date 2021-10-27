@@ -13,8 +13,8 @@ Edit the `ipxe-install` file:
 ```
 #!ipxe
 
-kernel https://releases.rancher.com/harvester/master/harvester-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:https://releases.rancher.com/harvester/master/harvester-rootfs-amd64.squashfs console=ttyS1,115200 harvester.install.automatic=true harvester.install.config_url=https://metadata.platformequinix.com/userdata
-initrd https://releases.rancher.com/harvester/master/harvester-initrd-amd64
+kernel https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:https://releases.rancher.com/harvester/master/harvester-master-rootfs-amd64.squashfs console=ttyS1,115200 harvester.install.automatic=true harvester.install.config_url=https://metadata.platformequinix.com/userdata
+initrd https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
 boot
 ```
 
@@ -54,7 +54,7 @@ The `harvester.install.config_url=https://metadata.platformequinix.com/userdata`
           default_route: true
           method: dhcp
       device: /dev/sda
-      iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
+      iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
       tty: ttyS1,115200n8
     ```
     - The [userdata file](./userdata-create.yaml) is included in the source and the user can modify it according to any need.
@@ -88,7 +88,7 @@ install:
       default_route: true
       method: dhcp
   device: /dev/sda
-  iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
+  iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
   tty: ttyS1,115200n
 ```
 

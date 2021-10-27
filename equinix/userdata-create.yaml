@@ -13,5 +13,5 @@ install:
       default_route: true
       method: dhcp
   device: /dev/sda
-  iso_url: https://releases.rancher.com/harvester/master/harvester-amd64.iso
+  iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
   tty: ttyS1,115200n8
