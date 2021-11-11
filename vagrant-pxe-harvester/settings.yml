@@ -97,6 +97,11 @@ harvester_config:
   # password to for the `rancher` user to login to the Harvester nodes
   password: p@ssword
 
+  # NTP servers
+  ntp_servers:
+    - 0.suse.pool.ntp.org
+    - 1.suse.pool.ntp.org
+
 #
 # harvester_node_config
 #
