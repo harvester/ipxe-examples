@@ -8,6 +8,10 @@ os:
     - {{ ssh_key }}
 {% endfor %}
   password: {{ settings['harvester_config']['password'] }}
+  ntp_servers:
+{% for ntp_server in settings['harvester_config']['ntp_servers'] %}
+    - {{ ntp_server }}
+{% endfor %}
 install:
   mode: create
   networks:
