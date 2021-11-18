@@ -22,7 +22,6 @@ install:
     bond0:
       interfaces:
       - name: {{ settings['harvester_network_config']['cluster'][0]['vagrant_interface'] }}
-      default_route: true
       method: dhcp
   device: /dev/vda       # The target disk to install
   iso_url: http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/harvester-amd64.iso
