@@ -48,6 +48,7 @@ harvester_network_config:
     subnet: 192.168.0.0
     netmask: 255.255.255.0
     range: 192.168.0.50 192.168.0.130
+    https: false
   # Reserve these IPs for the Harvester cluster. Make sure these are outside
   # the range of DHCP so they don't get served out by the DHCP server
   vip:
