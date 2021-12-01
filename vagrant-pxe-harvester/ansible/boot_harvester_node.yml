@@ -19,7 +19,7 @@
 
 - name: wait for Harvester Node {{ harvester_node_ip }} to get ready
   uri:
-    url: "https://{{ harvester_node_ip }}:30443"
+    url: "https://{{ harvester_node_ip }}"
     validate_certs: no
     status_code: 200
     timeout: 120
