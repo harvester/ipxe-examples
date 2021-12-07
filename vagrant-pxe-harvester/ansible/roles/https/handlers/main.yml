@@ -1,5 +1,5 @@
 ---
-- name: restart nginx
+- name: restart nginx for https
   systemd:
     name: nginx
     state: restarted
