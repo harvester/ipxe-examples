@@ -1,6 +1,6 @@
 # example from https://github.com/harvester/ipxe-examples/blob/main/general/config-join.yaml
 
-server_url: https://{{ settings['harvester_network_config']['cluster'][0]['ip'] }}:8443
+server_url: https://{{ settings['harvester_network_config']['vip']['ip'] }}:8443
 token: {{ settings['harvester_config']['token'] }}
 os:
   hostname: harvester-node-{{ node_number }}
