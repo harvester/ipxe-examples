@@ -1,0 +1,443 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Create a new ext4 primary partition
+      parted:
+        device: /dev/vdb
+        number: 1
+        state: present
+        label: gpt
+        part_type: primary
+        part_start: 0%
+        part_end: 50%
+      register: partion_formated_result
+    
+    - debug: var=partion_formated_result.stdout_lines 
+
+    - name: format drive as ext4
+      filesystem:
+        fstype: ext4
+        dev: /dev/vdb1
+      register: format_vdb_result
+
+    - debug: var=format_vdb_result.stdout_lines
+
+    - name: create mount directory for bigger volume
+      file:
+        path: /mnt/docker
+        state: directory
+
+    - name: create a new ext4 secondary partition for registry 
+      parted:
+        device: /dev/vdb
+        number: 2
+        state: present
+        label: gpt
+        part_start: 50%
+        part_end: 100%
+      register: seconday_partition_result
+    
+    - debug: var=seconday_partition_result.stdout_lines
+
+    - name: format secondary drive as ext4
+      filesystem:
+        fstype: ext4
+        dev: /dev/vdb2
+      register: secondary_partition_format_result
+
+    - debug: var=secondary_partition_format_result.stdout_lines
+
+    - name: mount primary vdb partion device
+      command: mount /dev/vdb1 /mnt/docker
+      register: mount_result
+    
+    - debug: var=mount_result.stdout_lines
+
+    - name: make docker var lib directory
+      file:
+        path: /var/lib/docker
+        state: directory
+
+    - name: make registry on vagrant home
+      file:
+        path: /home/vagrant/registry
+        state: directory
+    
+    - name: mount secondary vdb partion device
+      command: mount /dev/vdb2 /home/vagrant/registry
+      register: mount_result_secondary
+    
+    - debug: var=mount_result_secondary.stdout_lines
+
+    - name: docker storage shift to vdb
+      command: mount --rbind /mnt/docker /var/lib/docker
+      register: docker_vdb_storage_shift_result
+    
+    - debug: var=docker_vdb_storage_shift_result.stdout_lines
+
+    - name: grab base packages for vagrant rancher single node
+      apt:
+        pkg:
+          - vim
+          - ca-certificates
+          - curl 
+          - gnupg
+          - lsb-release
+          - wget
+          - openssl
+          - net-tools
+        state: present
+        update_cache: yes
+      register: apt_init_result
+    
+    - debug: var=apt_init_result.stdout_lines
+    
+    - name: run curl to snag docker linux ubuntu gpg
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      register: result_of_curl_snag_gpg_docker
+    
+    - debug: var=result_of_curl_snag_gpg_docker.stdout_lines
+    
+    - name: add docker to apt sources lists 
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      register: result_of_apt_sources_list_docker_add
+    
+    - debug: var=result_of_apt_sources_list_docker_add.stdout_lines
+
+    - name: install docker
+      apt:
+        pkg: 
+          - docker-ce 
+          - docker-ce-cli 
+          - containerd.io 
+        state: present
+        update_cache: yes
+      register: apt_install_docker_deps
+    
+    - debug: var=apt_install_docker_deps.stdout_lines
+
+    - name: add vagrant to docker
+      shell: |
+        usermod -aG docker vagrant 
+      register: result_docker_group_add_user_mod
+    
+    - debug: var=result_docker_group_add_user_mod.stdout_lines
+
+    - name: get helm key 
+      shell: |
+        curl https://baltocdn.com/helm/signing.asc | apt-key add -
+      register: helm_key_result
+    
+    - debug: var=helm_key_result.stdout_lines
+
+    - name: snag apt transport https 
+      apt:
+        pkg: 
+          - apt-transport-https
+        state: present
+        update_cache: yes 
+      register: apt_transport_https_pkg_result
+
+    - debug: var=apt_transport_https_pkg_result.stdout_lines
+
+    - name: modify helm ubuntu srcs 
+      shell: |
+        echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+      register: modify_helm_ubuntu_srcs_result
+    
+    - debug: var=modify_helm_ubuntu_srcs_result.stdout_lines 
+
+    - name: install helm
+      apt:
+        pkg:
+          - helm
+        state: present
+        update_cache: yes
+      register: acquire_helm_pkg_status
+    
+    - debug: var=acquire_helm_pkg_status.stdout_lines
+
+    - name: create certs dir
+      file:
+        path: /home/vagrant/certs 
+        state: directory
+    
+    - name: create registry dir
+      file:
+        path: /home/vagrant/registry 
+        state: directory
+
+    - name: build openssl registry certs task
+      command: openssl req -newkey rsa:4096 -nodes -sha256 -keyout /home/vagrant/certs/domain.key -addext "subjectAltName = DNS:myregistry.local" -subj '/CN=www.mydom.com/O=My Company Name LTD./C=US' -x509 -days 365 -out /home/vagrant/certs/domain.crt
+      register: result_openssl_docker_reg_certs
+
+    - debug: var=result_openssl_docker_reg_certs.stdout_lines
+
+    - name: create certs docker dir
+      file:
+        path: /etc/docker/certs.d/myregistry.local:5000
+        state: directory
+      register: result_docker_certs_dir
+    
+    - debug: var=result_docker_certs_dir.stdout_lines 
+
+    - name: move certs
+      command: cp -v /home/vagrant/certs/domain.crt /etc/docker/certs.d/myregistry.local:5000/domain.crt
+      register: certs_moved_result
+    
+    - debug: var=certs_moved_result.stdout_lines
+    
+    - name: start docker registry 
+      command: docker run -d \
+        -p 5000:5000 \
+        --restart=always \
+        --name registry \
+        -v /home/vagrant/certs:/certs \
+        -v /home/vagrant/registry:/var/lib/registry \
+        -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+        -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+        registry:2
+      register: docker_start_info
+    
+    - debug: var=docker_start_info.stdout_lines
+
+    - name: snag ip from eth0 
+      shell: |
+        ip a s eth0 | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut -d ' ' -f2
+      register: private_ip
+    
+    - debug: var=private_ip.stdout_lines
+    
+    - name: modify /etc/hosts
+      shell: |
+        echo "" >> /etc/hosts && echo "{{ private_ip.stdout }} myregistry.local" >> /etc/hosts && cat /etc/hosts
+      register: modified_etc_hosts
+    
+    - debug: var=modified_etc_hosts.stdout_lines
+    
+    - name: copy get-rancher-scripts over
+      copy:
+        src: roles/rancher/files/get-rancher-scripts.sh
+        dest: /home/vagrant/
+      register: copy_rancher_script_status
+    
+    - debug: var=copy_rancher_script_status.stdout_lines
+
+    - name: make rancher scripts executable
+      file: 
+        dest: /home/vagrant/get-rancher-scripts.sh
+        mode: a+x
+      register: rancher_scripts_executable_adj_result
+    
+    - debug: var=rancher_scripts_executable_adj_result.stdout_lines
+
+    - name: run rancher script of getting images 
+      shell: |
+        cd /home/vagrant && ./get-rancher-scripts.sh {{ settings.rancher_config.rancher_version }} && ls -alh /home/vagrant 
+      register: result_images
+    
+    - debug: var=result_images.stdout_lines
+
+    - name: make executable script rancher save images
+      file: 
+        dest: /home/vagrant/rancher-save-images.sh
+        mode: a+x
+      register: result_save_image_script_executable
+    
+    - debug: var=result_save_image_script_executable.stdout_lines
+    
+    - name: make executable script rancher load images
+      file:
+        dest: /home/vagrant/rancher-load-images.sh
+        mode: a+x
+      register: result_load_images_script_executable
+    
+    - debug: var=result_load_images_script_executable.stdout_lines
+
+    - name: add cert manager helm repo for rancher
+      command: helm repo add jetstack https://charts.jetstack.io/
+      register: helm_repo_cert_manager_add_result
+    
+    - debug: var=helm_repo_cert_manager_add_result.stdout_lines
+
+    - name: update helm repo
+      command: helm repo update
+      register: helm_repo_update_result
+
+    - debug: var=helm_repo_update_result.stdout_lines
+
+    - name: fetch cert manager via helm 
+      command: helm fetch jetstack/cert-manager --version {{ settings.rancher_config.cert_manager_version }}
+      register: helm_fetch_cert_manager_result
+    
+    - debug: var=helm_fetch_cert_manager_result.stdout_lines
+
+    - name: append rancher-images.txt with helm info for cert-manager
+      shell: |
+        helm template ./cert-manager-{{ settings.rancher_config.cert_manager_version }}.tgz | awk '$1 ~ /image:/ {print $2}' | sed s/\"//g >> /home/vagrant/rancher-images.txt
+      register: helm_images_added_to_rancher_images_for_cert_manager_result
+    
+    - debug: var=helm_images_added_to_rancher_images_for_cert_manager_result.stdout_lines
+
+    - name: sort rancher-images.txt
+      command: sort -u /home/vagrant/rancher-images.txt -o /home/vagrant/rancher-images.txt
+      register: sort_result_of_rancher_images_txt
+    
+    - debug: var=sort_result_of_rancher_images_txt
+
+    - name: acquire rancher images
+      shell: |
+        cd /home/vagrant && ./rancher-save-images.sh --image-list ./rancher-images.txt
+      register: rancher_image_acquired_result
+    
+    - debug: var=rancher_image_acquired_result
+
+    - name: download k3s
+      shell: |
+        cd /home/vagrant && wget https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s-airgap-images-amd64.tar && wget https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s  
+      register: download_k3s_result
+    
+    - debug: var=download_k3s_result.stdout_lines
+
+    - name: copy over k3s
+      shell: |
+        cd /home/vagrant && chmod +x k3s && cp -v k3s /usr/local/bin/ && chown $USER /usr/local/bin/k3s
+      register: copy_k3s_result
+    
+    - debug: var=copy_k3s_result.stdout_lines
+
+    - name: downlad k3s install  
+      shell: |
+        cd /home/vagrant && curl https://get.k3s.io/ -o install.sh && chmod +x install.sh
+      register: download_k3s_install
+    
+    - debug: var=download_k3s_install.stdout_lines
+
+    - name: download rancher
+      shell: |
+        helm repo add rancher-latest https://releases.rancher.com/server-charts/latest && helm fetch rancher-latest/rancher --version={{ settings.rancher_config.rancher_version }}
+      register: download_rancher_result
+
+    - debug: var=download_rancher_result.stdout_lines
+
+    - name: create cert-manager dir
+      file:
+        path: /home/vagrant/cert-manager 
+        state: directory
+    
+    - name: download cert manager crds 
+      shell: |
+        cd /home/vagrant && curl -L -o cert-manager/cert-manager-crd.yaml https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
+      register: download_cert_manager_crds
+    
+    - debug: var=download_cert_manager_crds.stdout_lines
+
+    - name: install k9s 
+      shell: |
+        cd /home/vagrant && curl -kL https://github.com/derailed/k9s/releases/download/{{ settings.rancher_config.k9s_version }}/k9s_Linux_x86_64.tar.gz > k9s.tar.gz && tar -zxvf k9s.tar.gz && mv k9s /usr/local/bin/
+      register: install_k9s_result
+    
+    - debug: var=install_k9s_result.stdout_lines
+
+    # turn off the eth0, which is default network
+    - name: disable eth0, default network, switch pure to harvester
+      command: ifconfig eth0 down
+      register: ifconfig_eth0_disabling_result
+    
+    - debug: var=ifconfig_eth0_disabling_result.stdout_lines
+
+    - name: load in rancher images to private registry
+      shell: |
+        cd /home/vagrant && ./rancher-load-images.sh --image-list ./rancher-images.txt --registry myregistry.local:5000
+      register: load_to_private_registry_result
+    
+    - debug: var=load_to_private_registry_result.stdout_lines
+
+    - name: create rancher k3s agent images directory
+      file:
+        path: /var/lib/rancher/k3s/agent/images/
+        state: directory
+    
+    - name: copy over airgap images amd64 tar
+      shell: |
+        cd /home/vagrant && cp -v ./k3s-airgap-images-amd64.tar /var/lib/rancher/k3s/agent/images/
+      register: airgap_k3s_image_copy_result
+    
+    - debug: var=airgap_k3s_image_copy_result.stdout_lines
+
+    - name: install k3s 
+      shell: |
+        cd /home/vagrant && ./install.sh
+      environment:
+        INSTALL_K3S_SKIP_DOWNLOAD: true
+      register: install_k3s_result
+    
+    - debug: var=install_k3s_result.stdout_lines
+
+    - name: copy registries-yaml-edit.yaml over
+      copy:
+        src: roles/rancher/files/registries-yaml-edit.yaml
+        dest: /etc/rancher/k3s/
+      register: copy_rancher_registries_edit_result
+    
+    - debug: var=copy_rancher_registries_edit_result.stdout_lines
+
+    - name: append registries.yaml with edits
+      shell: |
+        cat /etc/rancher/k3s/registries-yaml-edit.yaml >> /etc/rancher/k3s/registries.yaml
+      register: append_registries_yaml_result
+    
+    - debug: var=append_registries_yaml_result.stdout_lines
+
+    - name: restart k3s 
+      shell: |
+        systemctl restart k3s.service
+      register: k3s_restart_result
+    
+    - debug: var=k3s_restart_result.stdout_lines
+
+    - name: copy over kubeconfig to vagrant home 
+      shell: |
+        mkdir -p /home/vagrant/.kube/config \
+        && cp -v /etc/rancher/k3s/k3s.yaml /home/vagrant/.kube/config \
+        && chown -R vagrant /home/vagrant/.kube/config \
+        && export KUBECONFIG=/home/vagrant/.kube/config
+      register: kubeconfig_copy_result
+    
+    - debug: var=kubeconfig_copy_result.stdout_lines
+
+    - name: generate cert-manager yaml files
+      shell: |
+        cd /home/vagrant && helm template cert-manager ./cert-manager-v1.7.1.tgz --output-dir . \
+        --namespace cert-manager \
+        --set image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-controller \
+        --set webhook.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-webhook \
+        --set cainjector.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-cainjector \
+        --set startupapicheck.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-ctl
+      register: cert_manager_yaml_file_generation_result
+    
+    - debug: var=cert_manager_yaml_file_generation_result.stdout_lines
+
+    - name: create cert-manager namespace
+      shell: |
+        kubectl create namespace cert-manager
+      register: cert_manager_namespace_create_result
+    
+    - debug: var=cert_manager_namespace_create_result.stdout_lines
+
+    - name: apply cert manger crd 
+      shell: |
+        cd /home/vagrant && kubectl apply -f cert-manager/cert-manager-crd.yaml 
+      register: cert_manager_crd_k8s_apply_result
+    
+    - debug: var=cert_manager_crd_k8s_apply_result.stdout_lines
+
+    - name: apply additional cert manager 
+      shell: |
+        cd /home/vagrant && kubectl apply -R -f ./cert-manager
+
+  roles:
+    - rancher
+

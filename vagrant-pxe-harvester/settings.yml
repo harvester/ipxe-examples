@@ -41,7 +41,7 @@ harvester_cluster_nodes: 3
 harvester_network_config:
   # Run as an airgapped environment that only has internet connectivity through an HTTP proxy.
   # The HTTP proxy runs on DHCP server using port 3128
-  offline: false
+  offline: true
 
   dhcp_server:
     ip: 192.168.0.254
@@ -106,6 +106,23 @@ harvester_config:
   ntp_servers:
     - 0.suse.pool.ntp.org
     - 1.suse.pool.ntp.org
+
+#
+# rancher_config
+# 
+# Rancher configurations
+# 
+rancher_config:
+  node_disk_size: 350G
+  run_single_node_air_gapped_rancher: true
+  cert_manager_version: v1.7.1
+  k3s_url_escaped_version: v1.23.4%2Bk3s1
+  rancher_version: v2.6.4-rc13
+  k9s_version: v0.25.18
+  mac_address_harvester_network: 02:29:F9:43:92:95
+  mac_address_non_harvester_network: 02:B8:A7:01:0E:4C
+  node_harvester_network_ip: 192.168.0.34
+
 
 #
 # harvester_node_config
