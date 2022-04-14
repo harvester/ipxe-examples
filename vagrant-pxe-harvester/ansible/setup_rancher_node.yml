@@ -1,4 +1,4 @@
-- hosts: all
+- hosts: rancher_box
   become: yes
   tasks:
     - name: Create a new ext4 primary partition
@@ -86,6 +86,7 @@
           - wget
           - openssl
           - net-tools
+          - htop
         state: present
         update_cache: yes
       register: apt_init_result
@@ -348,6 +349,12 @@
     
     - debug: var=ifconfig_eth0_disabling_result.stdout_lines
 
+    - name: test disabling didn't break pipe 
+      command: echo "testing..."
+      register: result_of_eth0_disable_test
+    
+    - debug: var=result_of_eth0_disable_test.stdout_lines
+
     - name: load in rancher images to private registry
       shell: |
         cd /home/vagrant && ./rancher-load-images.sh --image-list ./rancher-images.txt --registry myregistry.local:5000
@@ -369,9 +376,7 @@
 
     - name: install k3s 
       shell: |
-        cd /home/vagrant && ./install.sh
-      environment:
-        INSTALL_K3S_SKIP_DOWNLOAD: true
+        cd /home/vagrant && INSTALL_K3S_SKIP_DOWNLOAD=true ./install.sh
       register: install_k3s_result
     
     - debug: var=install_k3s_result.stdout_lines
@@ -437,6 +442,80 @@
     - name: apply additional cert manager 
       shell: |
         cd /home/vagrant && kubectl apply -R -f ./cert-manager
+
+    - name: copy rancher create-self-signed-cert.sh over
+      copy:
+        src: roles/rancher/files/create-self-signed-cert.sh
+        dest: /home/vagrant/
+      register: copy_rancher_purposed_create_self_signed_cert_result
+
+    - debug: var=copy_rancher_purposed_create_self_signed_cert_result.stdout_lines
+
+    - name: make rancher create-self-signed-cert.sh executable
+      file: 
+        dest: /home/vagrant/create-self-signed-cert.sh
+        mode: a+x
+      register: rancher_create_self_signed_script_made_executable_result
+    
+    - debug: var=rancher_create_self_signed_script_made_executable_result.stdout_lines
+
+    - name: create self signed cert
+      shell: |
+        cd /home/vagrant && ./create-self-signed-cert.sh --ssl-domain=helm-install.local --ssl-trusted-ip={{ settings.rancher_config.node_harvester_network_ip }}
+      register: self_signed_cert_creation_result
+    
+    - debug: var=self_signed_cert_creation_result.stdout_lines
+
+    - name: create cattle-system namespace
+      shell: |
+        kubectl create ns cattle-system
+      register: create_cattle_system_namespace_result
+    
+    - debug: var=create_cattle_system_namespace_result.stdout_lines
+  
+    - name: create tls-sa secret 
+      shell: |
+        cd /home/vagrant && kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=./cacerts.pem 
+      register: tls_sa_secret_from_pem_result
+    
+    - debug: var=tls_sa_secret_from_pem_result.stdout_lines
+
+    - name: create tls rancher ingress secret 
+      shell: |
+        cd /home/vagrant && kubectl -n cattle-system create secret tls tls-rancher-ingress \
+        --cert=tls.crt \
+        --key=tls.key
+      register: rancher_ingress_secret_result
+    
+    - debug: var=rancher_ingress_secret_result.stdout_lines 
+
+    - name: generate rancher yaml files 
+      shell: |
+        cd /home/vagrant && helm template rancher ./rancher-{{ settings.rancher_config.rancher_version_no_prefix }}.tgz --output-dir . \
+        --no-hooks \
+        --namespace cattle-system \
+        --set hostname=helm-install.local \
+        --set rancherImageTag={{ settings.rancher_config.rancher_version }} \
+        --set rancherImage=myregistry.local:5000/rancher/rancher \
+        --set systemDefaultRegistry=myregistry.local:5000 \
+        --set useBundledSystemChart=true \
+        --set ingress.tls.source=secret \
+        --set privateCA=true
+    
+    - name: install rancher 
+      shell: |
+        cd /home/vagrant && kubectl -n cattle-system apply -R -f ./rancher
+      register: install_rancher_result
+    
+    - debug: var=install_rancher_result.stdout_lines 
+
+    - name: update /etc/hosts 
+      shell: |
+        echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts \
+        && echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip  }} helm-install.local" >> /etc/hosts
+      register: host_update_result
+    
+    - debug: var=host_update_result.stdout_lines
 
   roles:
     - rancher

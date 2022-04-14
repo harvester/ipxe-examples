@@ -49,6 +49,9 @@
         vagrant up rancher_box
     register: rancher_box_vagrant_up_result
     when: rancher_config.run_single_node_air_gapped_rancher | bool
+  
+  - name: display single node air-gapped rancher install result 
+    debug: var=rancher_box_vagrant_up_result.stdout_lines
 
   # - name: boot Harvester nodes
   #   include: boot_harvester_node.yml

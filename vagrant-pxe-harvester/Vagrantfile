@@ -76,16 +76,20 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.boot 'hd'
         libvirt.nic_model_type = 'e1000'
     end
-    # Do some magic with ansible to provision the server
+    # We need to over-ride what vagrant would typically use to connect to ssh with ansible
+    # So we provide an additional inventory for vagrant that ties to the file/host
+    # Ensuring we can connect over the harvester net, not the temporary eth0 that will be cut
     rancher_box.vm.provision :ansible do |ansible|
-        ansible.verbose ="vvv"
+        ansible.verbose ="vvvv"
+        ansible.inventory_path = "inventories/vagrant"
         ansible.raw_arguments = ["--flush-cache"]
         ansible.playbook = 'ansible/setup_rancher_node.yml'
         ansible.extra_vars = {
             settings: @settings
         }
     end
-end
+  end
+
 
   # cluster_node_index = @settings['harvester_cluster_nodes'] - 1
   # (0..cluster_node_index).each do |node_number|
