@@ -1,5 +1,6 @@
 - hosts: rancher_box
   become: yes
+  gather_facts: true
   tasks:
     - name: Create a new ext4 primary partition
       parted:
@@ -113,6 +114,7 @@
           - docker-ce 
           - docker-ce-cli 
           - containerd.io 
+          - docker-compose
         state: present
         update_cache: yes
       register: apt_install_docker_deps
@@ -190,30 +192,23 @@
     
     - debug: var=certs_moved_result.stdout_lines
     
+    - name: copy docker-compose.yaml over
+      copy:
+        src: roles/rancher/files/docker-compose.yaml
+        dest: /home/vagrant/
+      register: copy_docker_compose_result
+
+    - debug: var=copy_docker_compose_result.stdout_lines
+
     - name: start docker registry 
-      command: docker run -d \
-        -p 5000:5000 \
-        --restart=always \
-        --name registry \
-        -v /home/vagrant/certs:/certs \
-        -v /home/vagrant/registry:/var/lib/registry \
-        -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
-        -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
-        registry:2
+      command: docker-compose -f /home/vagrant/docker-compose.yaml up -d
       register: docker_start_info
     
     - debug: var=docker_start_info.stdout_lines
-
-    - name: snag ip from eth0 
-      shell: |
-        ip a s eth0 | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut -d ' ' -f2
-      register: private_ip
-    
-    - debug: var=private_ip.stdout_lines
     
     - name: modify /etc/hosts
       shell: |
-        echo "" >> /etc/hosts && echo "{{ private_ip.stdout }} myregistry.local" >> /etc/hosts && cat /etc/hosts
+        echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts && cat /etc/hosts
       register: modified_etc_hosts
     
     - debug: var=modified_etc_hosts.stdout_lines
@@ -289,18 +284,26 @@
     - debug: var=sort_result_of_rancher_images_txt
 
     - name: acquire rancher images
-      shell: |
-        cd /home/vagrant && ./rancher-save-images.sh --image-list ./rancher-images.txt
+      command: /home/vagrant/rancher-save-images.sh --image-list /home/vagrant/rancher-images.txt
       register: rancher_image_acquired_result
     
     - debug: var=rancher_image_acquired_result
 
-    - name: download k3s
-      shell: |
-        cd /home/vagrant && wget https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s-airgap-images-amd64.tar && wget https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s  
-      register: download_k3s_result
+    - name: download k3s air gap image 
+      get_url:
+        url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s-airgap-images-amd64.tar
+        dest: /home/vagrant/k3s-airgap-images-amd64.tar
+      register: wget_k3s_airgap_tar_result
     
-    - debug: var=download_k3s_result.stdout_lines
+    - debug: var=wget_k3s_airgap_tar_result.stdout_lines
+
+    - name: download k3s 
+      get_url:
+        url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s
+        dest: /home/vagrant/k3s 
+      register: wget_k3s_result 
+    
+    - debug: var=wget_k3s_result.stdout_lines
 
     - name: copy over k3s
       shell: |
@@ -356,8 +359,7 @@
     - debug: var=result_of_eth0_disable_test.stdout_lines
 
     - name: load in rancher images to private registry
-      shell: |
-        cd /home/vagrant && ./rancher-load-images.sh --image-list ./rancher-images.txt --registry myregistry.local:5000
+      command: /home/vagrant/rancher-load-images.sh --image-list /home/vagrant/rancher-images.txt --registry myregistry.local:5000
       register: load_to_private_registry_result
     
     - debug: var=load_to_private_registry_result.stdout_lines

@@ -46,9 +46,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # Use ansible to install server
     pxe_server.vm.provision :ansible do |ansible|
-      ansible.verbose ="vvv"
       ansible.playbook = 'ansible/setup_pxe_server.yml'
-      ansible.raw_arguments = ["--flush-cache"]
       ansible.extra_vars = {
         settings: @settings
       }
@@ -65,8 +63,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       mac: @settings['rancher_config']['mac_address_harvester_network']      
     rancher_box.vm.provider :libvirt do |libvirt|
         libvirt.cpu_mode = 'host-passthrough'
-        libvirt.memory = '16000'
-        libvirt.cpus = '8'
+        libvirt.memory = '24000'
+        libvirt.cpus = '12'
         libvirt.storage :file,
             size: @settings['rancher_config']['node_disk_size'],
             type: 'qcow2',
@@ -82,7 +80,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     rancher_box.vm.provision :ansible do |ansible|
         ansible.verbose ="vvvv"
         ansible.inventory_path = "inventories/vagrant"
-        ansible.raw_arguments = ["--flush-cache"]
         ansible.playbook = 'ansible/setup_rancher_node.yml'
         ansible.extra_vars = {
             settings: @settings

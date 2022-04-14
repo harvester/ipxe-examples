@@ -1,6 +1,6 @@
-
 [rancher_box]
 arancherbox ansible_host=192.168.0.34 ansible_private_key=.vagrant/machines/rancher_box/libvirt/private_key
+callbacks_enabled=timer,profile_tasks,profile_roles
 
 [vagrant]
 arancherbox
