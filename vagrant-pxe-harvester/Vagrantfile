@@ -47,6 +47,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Use ansible to install server
     pxe_server.vm.provision :ansible do |ansible|
       ansible.playbook = 'ansible/setup_pxe_server.yml'
+      ansible.verbose ="vvv"
       ansible.extra_vars = {
         settings: @settings
       }
@@ -54,7 +55,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :rancher_box do |rancher_box|
-    rancher_box.vm.box = 'peru/ubuntu-20.04-desktop-amd64'
+    #rancher_box.vm.box = 'peru/ubuntu-20.04-desktop-amd64'
+    rancher_box.vm.box = 'generic/ubuntu2004'
     rancher_box.vm.hostname = 'rancher-single-node-airgapped'
     # default network is eth0
     # private network becomes eth1
@@ -63,8 +65,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       mac: @settings['rancher_config']['mac_address_harvester_network']      
     rancher_box.vm.provider :libvirt do |libvirt|
         libvirt.cpu_mode = 'host-passthrough'
-        libvirt.memory = '24000'
-        libvirt.cpus = '12'
+        libvirt.memory = @settings['rancher_config']['memory']
+        libvirt.cpus = @settings['rancher_config']['cpu']
         libvirt.storage :file,
             size: @settings['rancher_config']['node_disk_size'],
             type: 'qcow2',
@@ -72,13 +74,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             device: 'vdb',
             serial: 'bdef2c36-cfab-4f75-b0f5-7bdae75417ce'
         libvirt.boot 'hd'
-        libvirt.nic_model_type = 'e1000'
     end
     # We need to over-ride what vagrant would typically use to connect to ssh with ansible
     # So we provide an additional inventory for vagrant that ties to the file/host
     # Ensuring we can connect over the harvester net, not the temporary eth0 that will be cut
     rancher_box.vm.provision :ansible do |ansible|
-        ansible.verbose ="vvvv"
+        ansible.verbose ="vvv"
         ansible.inventory_path = "inventories/vagrant"
         ansible.playbook = 'ansible/setup_rancher_node.yml'
         ansible.extra_vars = {
@@ -88,31 +89,31 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
 
-  # cluster_node_index = @settings['harvester_cluster_nodes'] - 1
-  # (0..cluster_node_index).each do |node_number|
-  #   vm_name = "harvester-node-#{node_number}"
-  #   config.vm.define vm_name, autostart: false do |harvester_node|
-  #     harvester_node.vm.hostname = "harvester-node-#{node_number}"
-  #     harvester_node.vm.network 'private_network',
-  #       libvirt__network_name: 'harvester',
-  #       mac: @settings['harvester_network_config']['cluster'][node_number]['mac']
+  cluster_node_index = @settings['harvester_cluster_nodes'] - 1
+  (0..cluster_node_index).each do |node_number|
+    vm_name = "harvester-node-#{node_number}"
+    config.vm.define vm_name, autostart: false do |harvester_node|
+      harvester_node.vm.hostname = "harvester-node-#{node_number}"
+      harvester_node.vm.network 'private_network',
+        libvirt__network_name: 'harvester',
+        mac: @settings['harvester_network_config']['cluster'][node_number]['mac']
 
-  #     harvester_node.vm.provider :libvirt do |libvirt|
-  #       libvirt.cpu_mode = 'host-passthrough'
-  #       libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
-  #       libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
-  #       libvirt.storage :file,
-  #         size: @settings['harvester_network_config']['cluster'][node_number].key?('disk_size') ? @settings['harvester_network_config']['cluster'][node_number]['disk_size'] : @settings['harvester_node_config']['disk_size'],
-  #         type: 'qcow2',
-  #         bus: 'virtio',
-  #         device: 'vda'
-  #       boot_network = {'network' => 'harvester'}
-  #       libvirt.boot 'hd'
-  #       libvirt.boot boot_network
-  #       # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
-  #       libvirt.loader = '/usr/share/qemu/OVMF.fd'
-  #       libvirt.nic_model_type = 'e1000'
-  #     end
-  #   end
-  # end
+      harvester_node.vm.provider :libvirt do |libvirt|
+        libvirt.cpu_mode = 'host-passthrough'
+        libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
+        libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
+        libvirt.storage :file,
+          size: @settings['harvester_network_config']['cluster'][node_number].key?('disk_size') ? @settings['harvester_network_config']['cluster'][node_number]['disk_size'] : @settings['harvester_node_config']['disk_size'],
+          type: 'qcow2',
+          bus: 'virtio',
+          device: 'vda'
+        boot_network = {'network' => 'harvester'}
+        libvirt.boot 'hd'
+        libvirt.boot boot_network
+        # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
+        libvirt.loader = '/usr/share/qemu/OVMF.fd'
+        libvirt.nic_model_type = 'e1000'
+      end
+    end
+  end
 end

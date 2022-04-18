@@ -22,7 +22,7 @@ harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-ma
 #
 # NOTE: keep in mind that you need at least 3 nodes to make a cluster
 #
-harvester_cluster_nodes: 3
+harvester_cluster_nodes: 1
 
 #
 # network_config
@@ -119,12 +119,14 @@ rancher_config:
   k3s_url_escaped_version: v1.23.4%2Bk3s1
   rancher_version: v2.6.4-rc13
   rancher_version_no_prefix: 2.6.4-rc13
-  k9s_version: v0.25.18
+  # k9s_version: v0.25.18
   mac_address_harvester_network: 02:29:F9:43:92:95
   mac_address_non_harvester_network: 02:B8:A7:01:0E:4C
   # if this ip changes, update it in the inventories/vagrant file for the rancher_box
   # we interact with the libvirt vm on this IP via ansible, then shut off eth0 which provides a temp network out
   node_harvester_network_ip: 192.168.0.34
+  cpu: 6
+  memory: 20000
 
 
 #

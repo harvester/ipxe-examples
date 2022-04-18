@@ -1,7 +1,12 @@
 - hosts: rancher_box
   become: yes
-  gather_facts: true
   tasks:
+    - name: update /etc/hosts 
+      shell: echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts && echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip  }} helm-install.local" >> /etc/hosts
+      register: host_update_result
+    
+    - debug: var=host_update_result.stdout_lines
+
     - name: Create a new ext4 primary partition
       parted:
         device: /dev/vdb
@@ -294,6 +299,8 @@
         url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s-airgap-images-amd64.tar
         dest: /home/vagrant/k3s-airgap-images-amd64.tar
       register: wget_k3s_airgap_tar_result
+      retries: 3
+      until: wget_k3s_airgap_tar_result.stdout != ""
     
     - debug: var=wget_k3s_airgap_tar_result.stdout_lines
 
@@ -302,6 +309,8 @@
         url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s
         dest: /home/vagrant/k3s 
       register: wget_k3s_result 
+      retries: 3
+      until: wget_k3s_result.stdout != ""
     
     - debug: var=wget_k3s_result.stdout_lines
 
@@ -312,10 +321,24 @@
     
     - debug: var=copy_k3s_result.stdout_lines
 
-    - name: downlad k3s install  
-      shell: |
-        cd /home/vagrant && curl https://get.k3s.io/ -o install.sh && chmod +x install.sh
-      register: download_k3s_install
+    - name: download k3s install shell file
+      get_url:
+        url: https://get.k3s.io
+        dest: /home/vagrant/install.sh
+      register: wget_k3s_install_shell_result
+      retries: 3
+      until: wget_k3s_install_shell_result.stdout != ""
+    
+    - name: make executable k3s install shell
+      file:
+        dest: /home/vagrant/install.sh
+        mode: a+x
+      register: k3s_install_shell_executable_modify_result
+
+    # - name: downlad k3s install  
+    #   shell: |
+    #     cd /home/vagrant && curl https://get.k3s.io/ -o install.sh && chmod +x install.sh
+    #   register: download_k3s_install
     
     - debug: var=download_k3s_install.stdout_lines
 
@@ -332,18 +355,26 @@
         state: directory
     
     - name: download cert manager crds 
-      shell: |
-        cd /home/vagrant && curl -L -o cert-manager/cert-manager-crd.yaml https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
+      get_url:
+        url: https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
+        dest: /home/vagrant/cert-manager/cert-manager-crd.yaml
       register: download_cert_manager_crds
+      retries: 3
+      until: download_cert_manager_crds.stdout != ""
+
+    # - name: download cert manager crds 
+    #   shell: |
+    #     cd /home/vagrant && curl -L -o cert-manager/cert-manager-crd.yaml https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
+    #   register: download_cert_manager_crds
     
     - debug: var=download_cert_manager_crds.stdout_lines
 
-    - name: install k9s 
-      shell: |
-        cd /home/vagrant && curl -kL https://github.com/derailed/k9s/releases/download/{{ settings.rancher_config.k9s_version }}/k9s_Linux_x86_64.tar.gz > k9s.tar.gz && tar -zxvf k9s.tar.gz && mv k9s /usr/local/bin/
-      register: install_k9s_result
+    # - name: install k9s 
+    #   shell: |
+    #     cd /home/vagrant && curl -kL https://github.com/derailed/k9s/releases/download/{{ settings.rancher_config.k9s_version }}/k9s_Linux_x86_64.tar.gz > k9s.tar.gz && tar -zxvf k9s.tar.gz && mv k9s /usr/local/bin/
+    #   register: install_k9s_result
     
-    - debug: var=install_k9s_result.stdout_lines
+    # - debug: var=install_k9s_result.stdout_lines
 
     # turn off the eth0, which is default network
     - name: disable eth0, default network, switch pure to harvester
@@ -492,10 +523,7 @@
     - debug: var=rancher_ingress_secret_result.stdout_lines 
 
     - name: generate rancher yaml files 
-      shell: |
-        cd /home/vagrant && helm template rancher ./rancher-{{ settings.rancher_config.rancher_version_no_prefix }}.tgz --output-dir . \
-        --no-hooks \
-        --namespace cattle-system \
+      command: helm template rancher /home/vagrant/rancher-{{ settings.rancher_config.rancher_version_no_prefix }}.tgz --output-dir /home/vagrant --no-hooks --namespace cattle-system \
         --set hostname=helm-install.local \
         --set rancherImageTag={{ settings.rancher_config.rancher_version }} \
         --set rancherImage=myregistry.local:5000/rancher/rancher \
@@ -505,19 +533,10 @@
         --set privateCA=true
     
     - name: install rancher 
-      shell: |
-        cd /home/vagrant && kubectl -n cattle-system apply -R -f ./rancher
+      command: kubectl -n cattle-system apply -R -f /home/vagrant/rancher
       register: install_rancher_result
     
     - debug: var=install_rancher_result.stdout_lines 
-
-    - name: update /etc/hosts 
-      shell: |
-        echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts \
-        && echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip  }} helm-install.local" >> /etc/hosts
-      register: host_update_result
-    
-    - debug: var=host_update_result.stdout_lines
 
   roles:
     - rancher

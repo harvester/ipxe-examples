@@ -35,34 +35,34 @@
     set_fact:
       pxe_server_ip: "{{ get_pxe_server_ip_result.stdout }}"
     
-  # - name: wait for PXE server HTTP port to get ready
-  #   uri:
-  #     url: "http://{{ pxe_server_ip }}/harvester/config-create.yaml"
-  #     status_code: 200
-  #   register: pxe_server_http_result
-  #   until: pxe_server_http_result.status == 200
-  #   retries: 10
-  #   delay: 30
+  - name: wait for PXE server HTTP port to get ready
+    uri:
+      url: "http://{{ pxe_server_ip }}/harvester/config-create.yaml"
+      status_code: 200
+    register: pxe_server_http_result
+    until: pxe_server_http_result.status == 200
+    retries: 10
+    delay: 30
 
   - name: spin up single node air-gapped rancher 
     shell: |
-        vagrant up rancher_box
+        vagrant up rancher_box --debug
     register: rancher_box_vagrant_up_result
     when: rancher_config.run_single_node_air_gapped_rancher | bool
   
   - name: display single node air-gapped rancher install result 
     debug: var=rancher_box_vagrant_up_result.stdout_lines
 
-  # - name: boot Harvester nodes
-  #   include: boot_harvester_node.yml
-  #   vars:
-  #     node_number: "{{ item }}"
-  #   with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
+  - name: boot Harvester nodes
+    include: boot_harvester_node.yml
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
 
-  # - name: create "Installation Completed" message
-  #   shell: >
-  #     figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
-  #   register: figlet_result
+  - name: create "Installation Completed" message
+    shell: >
+      figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
+    register: figlet_result
 
   - name: print "Installation Completed"
     debug:
