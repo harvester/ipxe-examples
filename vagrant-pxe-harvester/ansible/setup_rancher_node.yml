@@ -528,7 +528,7 @@
       command: kubectl -n cattle-system apply -R -f /home/vagrant/rancher
       register: install_rancher_result
     
-    - debug: var=install_rancher_result.stdout_lines 
+    - debug: var=install_rancher_result.stdout_lines
 
   roles:
     - rancher
