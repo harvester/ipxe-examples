@@ -98,6 +98,34 @@
       register: apt_init_result
     
     - debug: var=apt_init_result.stdout_lines
+
+    - name: download k3s air gap image 
+      get_url:
+        url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s-airgap-images-amd64.tar
+        dest: /home/vagrant/k3s-airgap-images-amd64.tar
+      register: wget_k3s_airgap_tar_result
+    
+    - debug: var=wget_k3s_airgap_tar_result.stdout_lines
+
+    - name: download k3s 
+      get_url:
+        url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s
+        dest: /home/vagrant/k3s 
+      register: wget_k3s_result 
+    
+    - debug: var=wget_k3s_result.stdout_lines
+
+    - name: download k3s install shell file
+      get_url:
+        url: https://get.k3s.io
+        dest: /home/vagrant/install.sh
+      register: wget_k3s_install_shell_result
+    
+    - name: make executable k3s install shell
+      file:
+        dest: /home/vagrant/install.sh
+        mode: a+x
+      register: k3s_install_shell_executable_modify_result
     
     - name: run curl to snag docker linux ubuntu gpg
       shell: |
@@ -211,12 +239,12 @@
     
     - debug: var=docker_start_info.stdout_lines
     
-    - name: modify /etc/hosts
-      shell: |
-        echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts && cat /etc/hosts
-      register: modified_etc_hosts
+    # - name: modify /etc/hosts
+    #   shell: |
+    #     echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts && cat /etc/hosts
+    #   register: modified_etc_hosts
     
-    - debug: var=modified_etc_hosts.stdout_lines
+    # - debug: var=modified_etc_hosts.stdout_lines
     
     - name: copy get-rancher-scripts over
       copy:
@@ -294,46 +322,12 @@
     
     - debug: var=rancher_image_acquired_result
 
-    - name: download k3s air gap image 
-      get_url:
-        url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s-airgap-images-amd64.tar
-        dest: /home/vagrant/k3s-airgap-images-amd64.tar
-      register: wget_k3s_airgap_tar_result
-      retries: 3
-      until: wget_k3s_airgap_tar_result.stdout != ""
-    
-    - debug: var=wget_k3s_airgap_tar_result.stdout_lines
-
-    - name: download k3s 
-      get_url:
-        url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s
-        dest: /home/vagrant/k3s 
-      register: wget_k3s_result 
-      retries: 3
-      until: wget_k3s_result.stdout != ""
-    
-    - debug: var=wget_k3s_result.stdout_lines
-
     - name: copy over k3s
       shell: |
         cd /home/vagrant && chmod +x k3s && cp -v k3s /usr/local/bin/ && chown $USER /usr/local/bin/k3s
       register: copy_k3s_result
     
     - debug: var=copy_k3s_result.stdout_lines
-
-    - name: download k3s install shell file
-      get_url:
-        url: https://get.k3s.io
-        dest: /home/vagrant/install.sh
-      register: wget_k3s_install_shell_result
-      retries: 3
-      until: wget_k3s_install_shell_result.stdout != ""
-    
-    - name: make executable k3s install shell
-      file:
-        dest: /home/vagrant/install.sh
-        mode: a+x
-      register: k3s_install_shell_executable_modify_result
 
     # - name: downlad k3s install  
     #   shell: |
@@ -359,8 +353,6 @@
         url: https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
         dest: /home/vagrant/cert-manager/cert-manager-crd.yaml
       register: download_cert_manager_crds
-      retries: 3
-      until: download_cert_manager_crds.stdout != ""
 
     # - name: download cert manager crds 
     #   shell: |
