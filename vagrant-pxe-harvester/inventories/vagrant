@@ -8,6 +8,3 @@ arancherbox
 host_key_checking=False
 ansible_connection=ssh
 ansible_user=vagrant
-
-[ssh_connection]
-pipelining = True

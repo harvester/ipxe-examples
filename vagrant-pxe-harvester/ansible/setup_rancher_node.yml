@@ -93,11 +93,30 @@
           - openssl
           - net-tools
           - htop
+          - software-properties-common
         state: present
         update_cache: yes
       register: apt_init_result
     
     - debug: var=apt_init_result.stdout_lines
+
+    - name: Add nginx stable repository from PPA and install its signing key on Ubuntu target
+      ansible.builtin.apt_repository:
+        repo: ppa:ansible/ansible
+    
+    - name: grab ansible and galaxy
+      apt:
+        pkg:
+          - ansible
+        state: present
+        update_cache: yes
+      register: apt_second_init
+
+    - name: install k8s ansible controlling modules from ansible galaxy 
+      command: ansible-galaxy collection install kubernetes.core
+      register: ansible_galaxy_k8s_plugin_install
+    
+    - debug: var=ansible_galaxy_k8s_plugin_install.stdout_lines
 
     - name: download k3s air gap image 
       get_url:
@@ -239,13 +258,6 @@
     
     - debug: var=docker_start_info.stdout_lines
     
-    # - name: modify /etc/hosts
-    #   shell: |
-    #     echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts && cat /etc/hosts
-    #   register: modified_etc_hosts
-    
-    # - debug: var=modified_etc_hosts.stdout_lines
-    
     - name: copy get-rancher-scripts over
       copy:
         src: roles/rancher/files/get-rancher-scripts.sh
@@ -286,19 +298,29 @@
     - debug: var=result_load_images_script_executable.stdout_lines
 
     - name: add cert manager helm repo for rancher
-      command: helm repo add jetstack https://charts.jetstack.io/
+      shell: |
+        helm repo add jetstack https://charts.jetstack.io/
       register: helm_repo_cert_manager_add_result
-    
+
+    # - name: add cert manager helm repo for rancher
+    #   kubernetes.core.helm_repository:
+    #     name: jetstack
+    #     repo_url: https://charts.jetstack.io/
+    #     repo_state: present
+    #   register: helm_repo_cert_manager_add_result
+
     - debug: var=helm_repo_cert_manager_add_result.stdout_lines
 
     - name: update helm repo
-      command: helm repo update
+      shell: |
+        helm repo update
       register: helm_repo_update_result
 
     - debug: var=helm_repo_update_result.stdout_lines
 
     - name: fetch cert manager via helm 
-      command: helm fetch jetstack/cert-manager --version {{ settings.rancher_config.cert_manager_version }}
+      shell: |
+        helm fetch jetstack/cert-manager --version {{ settings.rancher_config.cert_manager_version }}
       register: helm_fetch_cert_manager_result
     
     - debug: var=helm_fetch_cert_manager_result.stdout_lines
@@ -309,6 +331,35 @@
       register: helm_images_added_to_rancher_images_for_cert_manager_result
     
     - debug: var=helm_images_added_to_rancher_images_for_cert_manager_result.stdout_lines
+
+    - name: helm repo add rancher-latest
+      shell: |
+        helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+      register: helm_repo_add_rancher_charts
+    # there is an error with the helm way: 'not a valid chart repository or cannot be reached'
+    # - name: add rancher to helm 
+    #   kubernetes.core.helm_repository:
+    #     name: rancher-latest
+    #     repo_url: https://releases.rancher.com/server-charts/latest
+    #     repo_state: present
+    #   register: helm_repo_add_rancher_charts
+    
+    - debug: var=helm_repo_add_rancher_charts.stdout_lines
+
+    - name: update helm repo post rancher charts adding
+      shell: |
+        helm repo update
+      register: helm_repo_update_result_post_rancher_charts
+
+
+    - debug: var=helm_repo_update_result_post_rancher_charts.stdout_lines
+
+    - name: download rancher
+      shell: |
+        helm fetch rancher-latest/rancher --version={{ settings.rancher_config.rancher_version }}
+      register: download_rancher_result
+
+    - debug: var=download_rancher_result.stdout_lines
 
     - name: sort rancher-images.txt
       command: sort -u /home/vagrant/rancher-images.txt -o /home/vagrant/rancher-images.txt
@@ -328,62 +379,47 @@
       register: copy_k3s_result
     
     - debug: var=copy_k3s_result.stdout_lines
-
-    # - name: downlad k3s install  
-    #   shell: |
-    #     cd /home/vagrant && curl https://get.k3s.io/ -o install.sh && chmod +x install.sh
-    #   register: download_k3s_install
     
     - debug: var=download_k3s_install.stdout_lines
-
-    - name: download rancher
-      shell: |
-        helm repo add rancher-latest https://releases.rancher.com/server-charts/latest && helm fetch rancher-latest/rancher --version={{ settings.rancher_config.rancher_version }}
-      register: download_rancher_result
-
-    - debug: var=download_rancher_result.stdout_lines
+    # We don't want to bail out if there are errors, since we've spent so much time grabbing the images and persisting them
 
     - name: create cert-manager dir
       file:
         path: /home/vagrant/cert-manager 
         state: directory
+      ignore_errors: yes
+
     
     - name: download cert manager crds 
       get_url:
         url: https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
         dest: /home/vagrant/cert-manager/cert-manager-crd.yaml
       register: download_cert_manager_crds
-
-    # - name: download cert manager crds 
-    #   shell: |
-    #     cd /home/vagrant && curl -L -o cert-manager/cert-manager-crd.yaml https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
-    #   register: download_cert_manager_crds
+      ignore_errors: yes
     
     - debug: var=download_cert_manager_crds.stdout_lines
 
-    # - name: install k9s 
-    #   shell: |
-    #     cd /home/vagrant && curl -kL https://github.com/derailed/k9s/releases/download/{{ settings.rancher_config.k9s_version }}/k9s_Linux_x86_64.tar.gz > k9s.tar.gz && tar -zxvf k9s.tar.gz && mv k9s /usr/local/bin/
-    #   register: install_k9s_result
-    
-    # - debug: var=install_k9s_result.stdout_lines
-
+    # due to the time taking so long on setup, we temporarily are ignoring errors after network cutover, 
+    # there may be a chance we can recover manually, but ansible may be having issues with something
     # turn off the eth0, which is default network
     - name: disable eth0, default network, switch pure to harvester
       command: ifconfig eth0 down
       register: ifconfig_eth0_disabling_result
+      ignore_errors: yes
     
     - debug: var=ifconfig_eth0_disabling_result.stdout_lines
 
     - name: test disabling didn't break pipe 
       command: echo "testing..."
       register: result_of_eth0_disable_test
+      ignore_errors: yes
     
     - debug: var=result_of_eth0_disable_test.stdout_lines
 
     - name: load in rancher images to private registry
       command: /home/vagrant/rancher-load-images.sh --image-list /home/vagrant/rancher-images.txt --registry myregistry.local:5000
       register: load_to_private_registry_result
+      ignore_errors: yes
     
     - debug: var=load_to_private_registry_result.stdout_lines
 
@@ -391,11 +427,13 @@
       file:
         path: /var/lib/rancher/k3s/agent/images/
         state: directory
+      ignore_errors: yes
     
     - name: copy over airgap images amd64 tar
       shell: |
         cd /home/vagrant && cp -v ./k3s-airgap-images-amd64.tar /var/lib/rancher/k3s/agent/images/
       register: airgap_k3s_image_copy_result
+      ignore_errors: yes
     
     - debug: var=airgap_k3s_image_copy_result.stdout_lines
 
@@ -403,6 +441,7 @@
       shell: |
         cd /home/vagrant && INSTALL_K3S_SKIP_DOWNLOAD=true ./install.sh
       register: install_k3s_result
+      ignore_errors: yes
     
     - debug: var=install_k3s_result.stdout_lines
 
@@ -411,6 +450,7 @@
         src: roles/rancher/files/registries-yaml-edit.yaml
         dest: /etc/rancher/k3s/
       register: copy_rancher_registries_edit_result
+      ignore_errors: yes
     
     - debug: var=copy_rancher_registries_edit_result.stdout_lines
 
@@ -418,6 +458,7 @@
       shell: |
         cat /etc/rancher/k3s/registries-yaml-edit.yaml >> /etc/rancher/k3s/registries.yaml
       register: append_registries_yaml_result
+      ignore_errors: yes
     
     - debug: var=append_registries_yaml_result.stdout_lines
 
@@ -425,6 +466,7 @@
       shell: |
         systemctl restart k3s.service
       register: k3s_restart_result
+      ignore_errors: yes
     
     - debug: var=k3s_restart_result.stdout_lines
 
@@ -435,6 +477,7 @@
         && chown -R vagrant /home/vagrant/.kube/config \
         && export KUBECONFIG=/home/vagrant/.kube/config
       register: kubeconfig_copy_result
+      ignore_errors: yes
     
     - debug: var=kubeconfig_copy_result.stdout_lines
 
@@ -447,6 +490,7 @@
         --set cainjector.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-cainjector \
         --set startupapicheck.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-ctl
       register: cert_manager_yaml_file_generation_result
+      ignore_errors: yes
     
     - debug: var=cert_manager_yaml_file_generation_result.stdout_lines
 
@@ -454,6 +498,7 @@
       shell: |
         kubectl create namespace cert-manager
       register: cert_manager_namespace_create_result
+      ignore_errors: yes
     
     - debug: var=cert_manager_namespace_create_result.stdout_lines
 
@@ -461,18 +506,21 @@
       shell: |
         cd /home/vagrant && kubectl apply -f cert-manager/cert-manager-crd.yaml 
       register: cert_manager_crd_k8s_apply_result
+      ignore_errors: yes
     
     - debug: var=cert_manager_crd_k8s_apply_result.stdout_lines
 
     - name: apply additional cert manager 
       shell: |
         cd /home/vagrant && kubectl apply -R -f ./cert-manager
+      ignore_errors: yes
 
     - name: copy rancher create-self-signed-cert.sh over
       copy:
         src: roles/rancher/files/create-self-signed-cert.sh
         dest: /home/vagrant/
       register: copy_rancher_purposed_create_self_signed_cert_result
+      ignore_errors: yes
 
     - debug: var=copy_rancher_purposed_create_self_signed_cert_result.stdout_lines
 
@@ -481,6 +529,7 @@
         dest: /home/vagrant/create-self-signed-cert.sh
         mode: a+x
       register: rancher_create_self_signed_script_made_executable_result
+      ignore_errors: yes
     
     - debug: var=rancher_create_self_signed_script_made_executable_result.stdout_lines
 
@@ -488,6 +537,7 @@
       shell: |
         cd /home/vagrant && ./create-self-signed-cert.sh --ssl-domain=helm-install.local --ssl-trusted-ip={{ settings.rancher_config.node_harvester_network_ip }}
       register: self_signed_cert_creation_result
+      ignore_errors: yes
     
     - debug: var=self_signed_cert_creation_result.stdout_lines
 
@@ -495,6 +545,7 @@
       shell: |
         kubectl create ns cattle-system
       register: create_cattle_system_namespace_result
+      ignore_errors: yes
     
     - debug: var=create_cattle_system_namespace_result.stdout_lines
   
@@ -502,6 +553,7 @@
       shell: |
         cd /home/vagrant && kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=./cacerts.pem 
       register: tls_sa_secret_from_pem_result
+      ignore_errors: yes
     
     - debug: var=tls_sa_secret_from_pem_result.stdout_lines
 
@@ -511,6 +563,7 @@
         --cert=tls.crt \
         --key=tls.key
       register: rancher_ingress_secret_result
+      ignore_errors: yes
     
     - debug: var=rancher_ingress_secret_result.stdout_lines 
 
@@ -523,10 +576,12 @@
         --set useBundledSystemChart=true \
         --set ingress.tls.source=secret \
         --set privateCA=true
+      ignore_errors: yes
     
     - name: install rancher 
       command: kubectl -n cattle-system apply -R -f /home/vagrant/rancher
       register: install_rancher_result
+      ignore_errors: yes
     
     - debug: var=install_rancher_result.stdout_lines
 
