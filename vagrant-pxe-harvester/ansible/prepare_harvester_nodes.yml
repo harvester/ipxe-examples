@@ -1,22 +1,22 @@
 ---
-- hosts: harvesternodes
+- name: Adjust Harvester Nodes If Needed
+  hosts: harvesternodes
+  connection: local
+  gather_facts: false
   become: yes
-
-  tasks:
-  - name: set Harvester Node IP fact for new host group built
-    set_fact:
-      harvester_node_ip: "{{ harvester_network_config['cluster'][node_number | int]['ip'] }}"
-
-  - name: copy rke2 registries over
-    copy:
-      src: roles/harvester/files/registries-edit.yaml.j2
-      dest: /etc/rancher/rke2/registries.yaml
-    register: copy_rke2_registries_yaml_result
-    delegate_to: {{ harvester_node_ip }}
   
-  - debug: var=copy_rke2_registries_yaml_result.stdout_lines
-
-  - name: restart rke2 service on harvester node 
-    systemd:
-      name: rke2-server.service
-      state: restarted
+  tasks:
+  - name: making adjustments
+    shell: |
+      echo "starting to make adjustments to harvester nodes..."
+    when: rancher_config.run_single_node_air_gapped_rancher | bool
+    
+  # TODO: Not fully implemented yet
+  - name: make Harvester nodes adjusted for air-gapped rancher 
+    include: adjust_harvester_nodes.yml 
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
+    when: rancher_config.run_single_node_air_gapped_rancher | bool
+    ignore_errors: yes
+    ignore_unreachable: yes

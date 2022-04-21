@@ -51,6 +51,8 @@ harvester_network_config:
     https: false
   # Reserve these IPs for the Harvester cluster. Make sure these are outside
   # the range of DHCP so they don't get served out by the DHCP server
+  # The Harvester cluster IPs are also represented in the 'inventory' file, so editing these
+  # you would also want to make updates / edits to the inventory file
   vip:
     ip: 192.168.0.131
     mode: DHCP
@@ -138,6 +140,8 @@ rancher_config:
   rancher_install_domain: helm-install.test
   # registry_domain is the docker domain that get's set up, it can be anything as long as it ends in a ".local"
   registry_domain: myregistry.local
+  # this is the coredns build image that harvester uses change when needed
+  harvester_coredns_build: rancher/hardened-coredns:v1.9.1-build20220318
 
 
 #

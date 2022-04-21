@@ -1,8 +1,0 @@
-mirrors:
-  docker.io:
-    endpoint:
-      - https://{{ settings.rancher_config.registry_domain }}:5000/
-configs:
-  {{ settings.rancher_config.registry_domain }}:5000:
-    tls:
-      insecure_skip_verify: true

@@ -33,29 +33,6 @@
     owner: www-data
     recurse: yes
 
-- name: build rke directory pre-emptively 
-  file:
-    path: /etc/rancher/rke2
-    state: directory
-  when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
-
-- name: modify hosts if air-gapped-rancher is set
-  shell: |
-    echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local helm-install.local" >> /etc/hosts
-  when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
-
-- name: copy over registry edit to tmp
-  copy:
-    src: registries-edit.yaml
-    dest: /tmp/
-  register: copy_registry_edit_over  
-  when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
-
-- name: append rke registries edit
-  shell: |
-    cat /tmp/registries-edit.yaml >> /etc/rancher/rke2/registries.yaml
-  when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
-
 - name: create boot entry for the first node
   template:
     src: ipxe-create.j2
