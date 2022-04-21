@@ -55,7 +55,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :rancher_box do |rancher_box|
-    #rancher_box.vm.box = 'peru/ubuntu-20.04-desktop-amd64'
     rancher_box.vm.box = 'generic/ubuntu2004'
     rancher_box.vm.hostname = 'rancher-single-node-airgapped'
     # default network is eth0

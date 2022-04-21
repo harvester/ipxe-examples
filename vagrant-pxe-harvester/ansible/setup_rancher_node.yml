@@ -2,7 +2,7 @@
   become: yes
   tasks:
     - name: update /etc/hosts 
-      shell: echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} myregistry.local" >> /etc/hosts && echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip  }} helm-install.local" >> /etc/hosts
+      shell: echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} {{ settings.rancher_config.registry_domain }}" >> /etc/hosts && echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip  }} {{ settings.rancher_config.rancher_install_domain }}" >> /etc/hosts
       register: host_update_result
     
     - debug: var=host_update_result.stdout_lines
@@ -225,21 +225,21 @@
         state: directory
 
     - name: build openssl registry certs task
-      command: openssl req -newkey rsa:4096 -nodes -sha256 -keyout /home/vagrant/certs/domain.key -addext "subjectAltName = DNS:myregistry.local" -subj '/CN=www.mydom.com/O=My Company Name LTD./C=US' -x509 -days 365 -out /home/vagrant/certs/domain.crt
+      command: openssl req -newkey rsa:4096 -nodes -sha256 -keyout /home/vagrant/certs/domain.key -addext "subjectAltName = DNS:{{ settings.rancher_config.registry_domain }}" -subj '/CN=www.mydom.com/O=My Company Name LTD./C=US' -x509 -days 365 -out /home/vagrant/certs/domain.crt
       register: result_openssl_docker_reg_certs
 
     - debug: var=result_openssl_docker_reg_certs.stdout_lines
 
     - name: create certs docker dir
       file:
-        path: /etc/docker/certs.d/myregistry.local:5000
+        path: /etc/docker/certs.d/{{ settings.rancher_config.registry_domain }}:5000
         state: directory
       register: result_docker_certs_dir
     
     - debug: var=result_docker_certs_dir.stdout_lines 
 
     - name: move certs
-      command: cp -v /home/vagrant/certs/domain.crt /etc/docker/certs.d/myregistry.local:5000/domain.crt
+      command: cp -v /home/vagrant/certs/domain.crt /etc/docker/certs.d/{{ settings.rancher_config.registry_domain }}:5000/domain.crt
       register: certs_moved_result
     
     - debug: var=certs_moved_result.stdout_lines
@@ -302,13 +302,6 @@
         helm repo add jetstack https://charts.jetstack.io/
       register: helm_repo_cert_manager_add_result
 
-    # - name: add cert manager helm repo for rancher
-    #   kubernetes.core.helm_repository:
-    #     name: jetstack
-    #     repo_url: https://charts.jetstack.io/
-    #     repo_state: present
-    #   register: helm_repo_cert_manager_add_result
-
     - debug: var=helm_repo_cert_manager_add_result.stdout_lines
 
     - name: update helm repo
@@ -336,13 +329,6 @@
       shell: |
         helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
       register: helm_repo_add_rancher_charts
-    # there is an error with the helm way: 'not a valid chart repository or cannot be reached'
-    # - name: add rancher to helm 
-    #   kubernetes.core.helm_repository:
-    #     name: rancher-latest
-    #     repo_url: https://releases.rancher.com/server-charts/latest
-    #     repo_state: present
-    #   register: helm_repo_add_rancher_charts
     
     - debug: var=helm_repo_add_rancher_charts.stdout_lines
 
@@ -381,7 +367,6 @@
     - debug: var=copy_k3s_result.stdout_lines
     
     - debug: var=download_k3s_install.stdout_lines
-    # We don't want to bail out if there are errors, since we've spent so much time grabbing the images and persisting them
 
     - name: create cert-manager dir
       file:
@@ -417,7 +402,7 @@
     - debug: var=result_of_eth0_disable_test.stdout_lines
 
     - name: load in rancher images to private registry
-      command: /home/vagrant/rancher-load-images.sh --image-list /home/vagrant/rancher-images.txt --registry myregistry.local:5000
+      command: /home/vagrant/rancher-load-images.sh --image-list /home/vagrant/rancher-images.txt --registry {{ settings.rancher_config.registry_domain }}:5000
       register: load_to_private_registry_result
       ignore_errors: yes
     
@@ -485,10 +470,10 @@
       shell: |
         cd /home/vagrant && helm template cert-manager ./cert-manager-v1.7.1.tgz --output-dir . \
         --namespace cert-manager \
-        --set image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-controller \
-        --set webhook.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-webhook \
-        --set cainjector.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-cainjector \
-        --set startupapicheck.image.repository=myregistry.local:5000/quay.io/jetstack/cert-manager-ctl
+        --set image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-controller \
+        --set webhook.image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-webhook \
+        --set cainjector.image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-cainjector \
+        --set startupapicheck.image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-ctl
       register: cert_manager_yaml_file_generation_result
       ignore_errors: yes
     
@@ -535,7 +520,7 @@
 
     - name: create self signed cert
       shell: |
-        cd /home/vagrant && ./create-self-signed-cert.sh --ssl-domain=helm-install.local --ssl-trusted-ip={{ settings.rancher_config.node_harvester_network_ip }}
+        cd /home/vagrant && ./create-self-signed-cert.sh --ssl-domain={{ settings.rancher_config.rancher_install_domain }} --ssl-trusted-ip={{ settings.rancher_config.node_harvester_network_ip }}
       register: self_signed_cert_creation_result
       ignore_errors: yes
     
@@ -569,10 +554,10 @@
 
     - name: generate rancher yaml files 
       command: helm template rancher /home/vagrant/rancher-{{ settings.rancher_config.rancher_version_no_prefix }}.tgz --output-dir /home/vagrant --no-hooks --namespace cattle-system \
-        --set hostname=helm-install.local \
+        --set hostname={{ settings.rancher_config.rancher_install_domain }} \
         --set rancherImageTag={{ settings.rancher_config.rancher_version }} \
-        --set rancherImage=myregistry.local:5000/rancher/rancher \
-        --set systemDefaultRegistry=myregistry.local:5000 \
+        --set rancherImage={{ settings.rancher_config.registry_domain }}:5000/rancher/rancher \
+        --set systemDefaultRegistry={{ settings.rancher_config.registry_domain }}:5000 \
         --set useBundledSystemChart=true \
         --set ingress.tls.source=secret \
         --set privateCA=true

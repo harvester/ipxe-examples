@@ -59,6 +59,14 @@
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
 
+  # TODO: Not fully implemented yet
+  # - name: make Harvester nodes adjusted for air-gapped rancher 
+  #   include: prepare_harvester_nodes.yml 
+  #   vars:
+  #     node_number: "{{ item }}"
+  #   with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
+  #   when: rancher_config.run_single_node_air_gapped_rancher | bool
+
   - name: create "Installation Completed" message
     shell: >
       figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
