@@ -34,6 +34,15 @@ Quick Start
     *NOTE*: by default `harvester_vip` is `192.168.0.131`. However, it is
     configureable in `settings.yml`.
 
+Running With Single Node Air-Gapped Rancher & Harvester Node
+-----------
+1.  As above, edit `settings.yml` to make sure the configuration satisfies your
+    needs. The options are self-documented.
+2.  Run `setup_harvester.sh` - this can take 2hrs+ to set up an Air Gapped Rancher instance and Harvester Node
+3.  You then can navigate to `https://<harvester_vip>:30443` to access the harvester UI.
+4.  You can also navigate to (from settings.yml) 'rancher_config.rancher_install_domain' to access the Air-Gapped Rancher UI.
+5.  Then you can add an air-gapped Harvester cluster to the air-gapped Rancher instance.
+
 Acknowledgements
 ----------------
 
