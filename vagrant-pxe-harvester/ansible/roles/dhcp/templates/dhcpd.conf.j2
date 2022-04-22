@@ -29,11 +29,11 @@ subnet {{ settings['harvester_network_config']['dhcp_server']['subnet'] }} netma
     }
 }
 
-{% if settings['rancher_config']['run_single_node_air_gapped_rancher'] %}
+{% if settings['rancher_config']['run_single_node_rancher'] %}
 host rancher_node {
     hardware ethernet {{ settings['rancher_config']['mac_address_harvester_network'] }};
     fixed-address {{ settings['rancher_config']['node_harvester_network_ip'] }};
-    server-name "rancher-single-node-airgapped";
+    server-name "rancher-single-node";
 }
 {% endif %}
 
