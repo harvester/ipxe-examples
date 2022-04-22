@@ -56,7 +56,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define :rancher_box do |rancher_box|
     rancher_box.vm.box = 'generic/ubuntu2004'
-    rancher_box.vm.hostname = 'rancher-single-node-airgapped'
+    rancher_box.vm.hostname = @settings['rancher_config']['rancher_install_domain']
+    #rancher_box.vm.network "public_network", auto_config: true
     # default network is eth0
     # private network becomes eth1
     rancher_box.vm.network 'private_network',
@@ -66,6 +67,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.cpu_mode = 'host-passthrough'
         libvirt.memory = @settings['rancher_config']['memory']
         libvirt.cpus = @settings['rancher_config']['cpu']
+        # libvirt.channel :type => 'unix', :target_name => 'org.qemu.guest_agent.0', :target_type => 'virtio'
+        # libvirt.qemu_use_agent = true
         libvirt.storage :file,
             size: @settings['rancher_config']['node_disk_size'],
             type: 'qcow2',
@@ -73,13 +76,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             device: 'vdb',
             serial: 'bdef2c36-cfab-4f75-b0f5-7bdae75417ce'
         libvirt.boot 'hd'
+        libvirt.nic_model_type = 'e1000'
     end
     # We need to over-ride what vagrant would typically use to connect to ssh with ansible
     # So we provide an additional inventory for vagrant that ties to the file/host
     # Ensuring we can connect over the harvester net, not the temporary eth0 that will be cut
     rancher_box.vm.provision :ansible do |ansible|
         ansible.verbose ="vvv"
-        ansible.inventory_path = "inventories/vagrant"
+        # ansible.inventory_path = "inventories/vagrant"
         ansible.playbook = 'ansible/setup_rancher_node.yml'
         ansible.extra_vars = {
             settings: @settings

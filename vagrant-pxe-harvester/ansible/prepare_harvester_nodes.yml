@@ -4,18 +4,25 @@
   connection: local
   gather_facts: false
   become: yes
+  ignore_unreachable: yes
+  ignore_errors: yes
+
   
   tasks:
   - name: making adjustments
     shell: |
       echo "starting to make adjustments to harvester nodes..."
-    when: rancher_config.run_single_node_air_gapped_rancher | bool
+    ignore_errors: yes
+    ignore_unreachable: yes
+    when: rancher_config.run_single_node_rancher | bool
+
+
     
-  - name: make Harvester nodes adjusted for air-gapped rancher 
+  - name: make Harvester nodes adjusted ford rancher 
     include: adjust_harvester_nodes.yml 
     vars:
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
-    when: rancher_config.run_single_node_air_gapped_rancher | bool
     ignore_errors: yes
     ignore_unreachable: yes
+    when: rancher_config.run_single_node_rancher | bool

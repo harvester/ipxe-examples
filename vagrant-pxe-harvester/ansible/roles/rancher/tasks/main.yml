@@ -1,0 +1,749 @@
+---
+  - name: Initial package setup, partitioning, host file modification, docker mount building
+    block:
+      - name: update /etc/hosts
+        ansible.builtin.shell: >
+          echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} {{ settings.rancher_config.registry_domain }}" >> /etc/hosts \
+          && echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip  }} {{ settings.rancher_config.rancher_install_domain }}" >> /etc/hosts
+        register: host_update_result
+      
+      - name: flip off eht1 temporarily
+        ansible.builtin.shell: >
+          ip link set eth1 down
+
+      - name: check connection to google first...so apt update doesn't fail
+        uri:
+          url: "https://www.google.com"
+        retries: 5
+        delay: 10
+        register: outbound_connection_result
+        until: outbound_connection_result is success
+
+      # NOTE: running 'update_cache' on the builtin apt module is not 'reliable', has mixed success over a series of runs
+      # had tried to originally implmenet that way, was presented with problems where sometimes it would work
+      # other times it simply wouldn't
+      - name: Run the equivalent of "apt-get update" as a separate step, first
+        ansible.builtin.apt:
+          update_cache: yes
+          update_cache_retries: 10
+
+
+      - name: grab base packages for vagrant rancher single node
+        retries: 30
+        delay: 10
+        ansible.builtin.apt:
+          pkg:
+            - libnss-mdns
+            - avahi-daemon
+            - gnupg2 
+            - vim
+            - ca-certificates
+            - curl
+            - gnupg
+            - lsb-release
+            - wget
+            - openssl
+            - net-tools
+            - htop
+            - software-properties-common
+            - parted
+            - qemu-guest-agent
+          state: present
+        register: apt_init_result
+        until: apt_init_result is success
+      
+      - name: copy avahi-daemon.conf over
+        ansible.builtin.template:
+          src: "avahi-daemon.conf.j2"
+          dest: /etc/avahi/avahi-daemon.conf
+          force: yes
+      
+      - name: restart avahi-daemon 
+        ansible.builtin.systemd:
+          name: avahi-daemon.service
+          state: reloaded
+
+      - name: Output apt_init_result Debug Msg
+        ansible.builtin.debug:
+          msg: "{{ apt_init_result.stdout_lines }}"
+          verbosity: 2
+        ignore_errors: yes
+
+      # TODO: Start grouping things with 'blocks'! - that way there can be logical grouping to this massive script, block/rescue/always
+      - name: Create a new ext4 primary partition
+        community.general.parted:
+          device: /dev/vdb
+          number: 1
+          state: present
+          label: gpt
+          part_type: primary
+          part_start: 0%
+          part_end: 50%
+        register: partion_formated_result
+
+      - name: Output partition_formated_result Debug Msg
+        ansible.builtin.debug:
+          msg: "{{ partion_formated_result.stdout_lines }}"
+          verbosity: 2
+        ignore_errors: yes
+
+      - name: format drive as ext4
+        community.general.filesystem:
+          fstype: ext4
+          dev: /dev/vdb1
+        register: format_vdb_result
+
+      - name: create mount directory for bigger volume
+        ansible.builtin.file:
+          path: /mnt/docker
+          state: directory
+
+      - name: create a new ext4 secondary partition for registry
+        community.general.parted:
+          device: /dev/vdb
+          number: 2
+          state: present
+          label: gpt
+          part_start: 50%
+          part_end: 100%
+        register: seconday_partition_result
+
+      - name: format secondary drive as ext4
+        community.general.filesystem:
+          fstype: ext4
+          dev: /dev/vdb2
+        register: secondary_partition_format_result
+
+      - name: mount primary vdb partion device
+        ansible.builtin.command: mount /dev/vdb1 /mnt/docker
+        register: mount_result
+
+      - name: make docker var lib directory
+        ansible.builtin.file:
+          path: /var/lib/docker
+          state: directory
+
+      - name: make registry on vagrant home
+        ansible.builtin.file:
+          path: /home/vagrant/registry
+          state: directory
+      # TODO: Refactor Mount Commands to use builtin module...if possible with consitency 
+      - name: mount secondary vdb partion device
+        ansible.builtin.command: mount /dev/vdb2 /home/vagrant/registry
+        register: mount_result_secondary
+
+      - name: docker storage shift to vdb
+        ansible.builtin.command: mount --rbind /mnt/docker /var/lib/docker
+        register: docker_vdb_storage_shift_result
+
+
+  - name: Download K3s, Docker, Helm and setup
+    block:
+      - name: download k3s air gap image
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s-airgap-images-amd64.tar
+          dest: /home/vagrant/k3s-airgap-images-amd64.tar
+        register: wget_k3s_airgap_tar_result
+        until: wget_k3s_airgap_tar_result is success
+
+
+      - name: download k3s
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url: https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_url_escaped_version }}/k3s
+          dest: /home/vagrant/k3s
+        register: wget_k3s_result
+        until: wget_k3s_result is success
+
+      - name: download k3s install shell file
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url: https://get.k3s.io
+          dest: /home/vagrant/install.sh
+        register: wget_k3s_install_shell_result
+        until: wget_k3s_install_shell_result is success
+
+      - name: make executable k3s install shell
+        ansible.builtin.file:
+          dest: /home/vagrant/install.sh
+          mode: a+x
+        register: k3s_install_shell_executable_modify_result
+
+      - name: run curl to snag docker linux ubuntu gpg
+        ansible.builtin.shell: |
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+        retries: 30
+        delay: 10
+        register: result_of_curl_snag_gpg_docker
+        until: result_of_curl_snag_gpg_docker is success
+
+      - name: add docker to apt sources lists
+        ansible.builtin.shell: |
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        register: result_of_apt_sources_list_docker_add
+
+      - name: Run the equivalent of "apt-get update" as a separate step, second
+        ansible.builtin.apt:
+          update_cache: yes
+          update_cache_retries: 10
+
+      - name: install docker
+        retries: 30
+        delay: 10
+        ansible.builtin.apt:
+          pkg:
+            - docker-ce
+            - docker-ce-cli
+            - containerd.io
+            - docker-compose
+          state: present
+        register: apt_install_docker_deps
+        until: apt_install_docker_deps is success
+
+      - name: add vagrant to docker
+        ansible.builtin.user:
+          name: vagrant
+          groups: docker
+          append: yes
+        register: result_docker_group_add_user_mod
+
+      - name: add helm apt signing key
+        ansible.builtin.apt_key:
+          url: https://baltocdn.com/helm/signing.asc
+          state: present
+        register: helm_key_result
+        retries: 30
+        delay: 10
+        until: helm_key_result is success
+
+      - name: Run the equivalent of "apt-get update" as a separate step, third
+        ansible.builtin.apt:
+          update_cache: yes
+          update_cache_retries: 10
+
+      - name: snag apt transport https
+        retries: 30
+        delay: 10
+        ansible.builtin.apt:
+          pkg:
+            - apt-transport-https
+          state: present
+        register: apt_transport_https_pkg_result
+        until: apt_transport_https_pkg_result is success
+
+      - name: modify helm ubuntu srcs
+        ansible.builtin.shell: |
+          echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+        register: modify_helm_ubuntu_srcs_result
+
+
+      - name: Run the equivalent of "apt-get update" as a separate step, fourth
+        ansible.builtin.apt:
+          update_cache: yes
+          update_cache_retries: 10
+
+      - name: install helm
+        retries: 30
+        delay: 10
+        ansible.builtin.apt:
+          pkg:
+            - helm
+          state: present
+        register: acquire_helm_pkg_status
+        until: acquire_helm_pkg_status is success
+  
+  - name: Set up certs with openssl 
+    block:
+      - name: Output acquire_helm_pkg_status Debug Msg
+        ansible.builtin.debug:
+          msg: "{{ acquire_helm_pkg_status.stdout_lines }}"
+          verbosity: 2
+        ignore_errors: yes
+
+      - name: create certs dir
+        ansible.builtin.file:
+          path: /home/vagrant/certs
+          state: directory
+
+      - name: create registry dir
+        ansible.builtin.file:
+          path: /home/vagrant/registry
+          state: directory
+
+      - name: build openssl registry certs task
+        ansible.builtin.command: openssl req -newkey rsa:4096 -nodes -sha256 -keyout /home/vagrant/certs/domain.key -addext "subjectAltName = DNS:{{ settings.rancher_config.registry_domain }}" -subj '/CN=www.mydom.com/O=My Company Name LTD./C=US' -x509 -days 365 -out /home/vagrant/certs/domain.crt
+        register: result_openssl_docker_reg_certs
+
+      - name: create certs docker dir
+        ansible.builtin.file:
+          path: /etc/docker/certs.d/{{ settings.rancher_config.registry_domain }}:5000
+          state: directory
+        register: result_docker_certs_dir
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: move certs
+        ansible.builtin.command: cp -v /home/vagrant/certs/domain.crt /etc/docker/certs.d/{{ settings.rancher_config.registry_domain }}:5000/domain.crt
+        register: certs_moved_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: Output certs_moved_result Debug Msg
+        ansible.builtin.debug:
+          msg: "{{ certs_moved_result.stdout_lines }}"
+          verbosity: 2
+        ignore_errors: yes
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+  - name: Move Over Docker Registry Content and Setup Rancher Images on Registry
+    block:
+      - name: copy docker-compose.yaml over
+        ansible.builtin.copy:
+          src: files/docker-compose.yaml
+          dest: /home/vagrant/
+        register: copy_docker_compose_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: start docker registry
+        ansible.builtin.command: docker-compose -f /home/vagrant/docker-compose.yaml up -d
+        register: docker_start_info
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: copy get-rancher-scripts over
+        ansible.builtin.copy:
+          src: files/get-rancher-scripts.sh
+          dest: /home/vagrant/
+        register: copy_rancher_script_status
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: make rancher scripts executable
+        ansible.builtin.file:
+          dest: /home/vagrant/get-rancher-scripts.sh
+          mode: a+x
+        register: rancher_scripts_executable_adj_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: run rancher script of getting images
+        ansible.builtin.shell: |
+          cd /home/vagrant && ./get-rancher-scripts.sh {{ settings.rancher_config.rancher_version }} && ls -alh /home/vagrant
+        register: result_images
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: make executable script rancher save images
+        ansible.builtin.file:
+          dest: /home/vagrant/rancher-save-images.sh
+          mode: a+x
+        register: result_save_image_script_executable
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: make executable script rancher load images
+        ansible.builtin.file:
+          dest: /home/vagrant/rancher-load-images.sh
+          mode: a+x
+        register: result_load_images_script_executable
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+  - name: Fetch Cert-Manager with Helm and Donwload Rancher AirGap Images
+    block:
+      - name: add cert manager helm repo for rancher
+        ansible.builtin.shell: |
+          helm repo add jetstack https://charts.jetstack.io/
+        register: helm_repo_cert_manager_add_result
+
+      - name: update helm repo
+        ansible.builtin.shell: |
+          helm repo update
+        register: helm_repo_update_result
+
+      - name: fetch cert manager via helm
+        ansible.builtin.shell: |
+          helm fetch jetstack/cert-manager --version {{ settings.rancher_config.cert_manager_version }}
+        register: helm_fetch_cert_manager_result
+
+      - name: append rancher-images.txt with helm info for cert-manager
+        ansible.builtin.shell: |
+          helm template ./cert-manager-{{ settings.rancher_config.cert_manager_version }}.tgz | awk '$1 ~ /image:/ {print $2}' | sed s/\"//g >> /home/vagrant/rancher-images.txt
+        register: helm_images_added_to_rancher_images_for_cert_manager_result
+
+      - name: helm repo add rancher-latest
+        ansible.builtin.shell: |
+          helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+        register: helm_repo_add_rancher_charts
+
+      - name: update helm repo post rancher charts adding
+        ansible.builtin.shell: |
+          helm repo update
+        register: helm_repo_update_result_post_rancher_charts
+
+      - name: download rancher 2.6.4
+        ansible.builtin.shell: |
+          helm fetch rancher-latest/rancher --version=v2.6.4
+        register: download_rancher_result
+        when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version != "v2.6.4")
+      
+      - name: download rancher desired version
+        ansible.builtin.shell: |
+          helm fetch rancher-latest/rancher --version={{ settings.rancher_config.rancher_version }}
+        register: download_rancher_result
+
+      - name: sort rancher-images.txt
+        ansible.builtin.command: sort -u /home/vagrant/rancher-images.txt -o /home/vagrant/rancher-images.txt
+        register: sort_result_of_rancher_images_txt
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: acquire rancher images
+        ansible.builtin.command: /home/vagrant/rancher-save-images.sh --image-list /home/vagrant/rancher-images.txt
+        register: rancher_image_acquired_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+  - name: Grab Rancher 2.6.4 Images When Desired Version is Not 2.6.4 and Load
+    block:
+      - name: acquire rancher-images v2.6.4 txt
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url:  https://github.com/rancher/rancher/releases/download/v2.6.4/rancher-images.txt
+          dest: /home/vagrant/rancher-images-v264.txt
+        register: v264_rancher_images_txt
+        until: v264_rancher_images_txt is success
+
+      - name: acquire rancher-load-images v2.6.4 shell file
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url:  https://github.com/rancher/rancher/releases/download/v2.6.4/rancher-load-images.sh
+          dest: /home/vagrant/rancher-load-images-v264.sh
+        register: v264_rancher_load_images_sh
+        until: v264_rancher_load_images_sh is success
+
+      - name: acquire rancher-save-images v2.6.4 shell file
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url:  https://github.com/rancher/rancher/releases/download/v2.6.4/rancher-save-images.sh
+          dest: /home/vagrant/rancher-save-images-v264.sh
+        register: v264_rancher_save_images_sh
+        until: v264_rancher_save_images_sh is success
+      
+      - name: make executable script rancher load images v2.6.4
+        ansible.builtin.file:
+          dest: /home/vagrant/rancher-load-images-v264.sh
+          mode: a+x
+
+      - name: make executable script rancher save images v2.6.4
+        ansible.builtin.file:
+          dest: /home/vagrant/rancher-save-images-v264.sh
+          mode: a+x
+
+      - name: acquire rancher images for v2.6.4
+        ansible.builtin.command: /home/vagrant/rancher-save-images-v264.sh --image-list /home/vagrant/rancher-images-v264.txt
+
+    when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version != "v2.6.4")
+
+
+  - name: Move over K3s and build Cert-Manager CRDS
+    block:
+      - name: copy over k3s
+        ansible.builtin.shell: |
+          cd /home/vagrant && chmod +x k3s && cp -v k3s /usr/local/bin/ && chown $USER /usr/local/bin/k3s
+        register: copy_k3s_result
+
+      - name: create cert-manager dir
+        ansible.builtin.file:
+          path: /home/vagrant/cert-manager
+          state: directory
+
+      - name: download cert manager crds
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url: https://github.com/jetstack/cert-manager/releases/download/{{ settings.rancher_config.cert_manager_version }}/cert-manager.crds.yaml
+          dest: /home/vagrant/cert-manager/cert-manager-crd.yaml
+        register: download_cert_manager_crds
+        until: download_cert_manager_crds is success
+
+
+  - name: Network Cutover AirGap the VM and Load Images into Registry
+    block:
+      - name: ip link eth1 back up
+        ansible.builtin.command: ip link set eth1 up
+
+      # turn off the eth0, which is default network
+      - name: disable eth0, default network, switch pure to harvester
+        ansible.builtin.command: ip link set eth0 down
+        register: ifconfig_eth0_disabling_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: test disabling didn't break pipe
+        ansible.builtin.command: echo "testing..."
+        register: result_of_eth0_disable_test
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: load in rancher images to private registry
+        ansible.builtin.command: /home/vagrant/rancher-load-images.sh --image-list /home/vagrant/rancher-images.txt --registry {{ settings.rancher_config.registry_domain }}:5000
+        register: load_to_private_registry_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: create rancher k3s agent images directory
+        ansible.builtin.file:
+          path: /var/lib/rancher/k3s/agent/images/
+          state: directory
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: copy over airgap images amd64 tar
+        ansible.builtin.shell: |
+          cd /home/vagrant && cp -v ./k3s-airgap-images-amd64.tar /var/lib/rancher/k3s/agent/images/
+        register: airgap_k3s_image_copy_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+
+  - name: Setup K3s Copy Kubeconfig
+    block: 
+      - name: install k3s
+        ansible.builtin.shell: |
+          cd /home/vagrant && INSTALL_K3S_SKIP_DOWNLOAD=true ./install.sh
+        register: install_k3s_result
+
+      - name: copy registries-yaml-edit.yaml over
+        ansible.builtin.copy:
+          src: files/registries-yaml-edit.yaml
+          dest: /etc/rancher/k3s/
+        register: copy_rancher_registries_edit_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: append registries.yaml with edits
+        ansible.builtin.shell: |
+          cat /etc/rancher/k3s/registries-yaml-edit.yaml >> /etc/rancher/k3s/registries.yaml
+        register: append_registries_yaml_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: restart k3s
+        ansible.builtin.service:
+          name: k3s
+          state: restarted
+        register: k3s_restart_result
+
+      - name: copy over kubeconfig to vagrant home
+        ansible.builtin.shell: |
+          mkdir -p /home/vagrant/.kube/config \
+          && cp -v /etc/rancher/k3s/k3s.yaml /home/vagrant/.kube/config \
+          && chown -R vagrant /home/vagrant/.kube/config \
+          && export KUBECONFIG=/home/vagrant/.kube/config
+        register: kubeconfig_copy_result
+
+
+  - name: Begin Helm Installs of Cert Manager and Build Self Signed Certificate
+    block: 
+      - name: generate cert-manager yaml files airgapped 
+        ansible.builtin.shell: |
+          cd /home/vagrant && helm template cert-manager ./cert-manager-{{ settings.rancher_config.cert_manager_version }}.tgz --output-dir . \
+          --namespace cert-manager \
+          --set image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-controller \
+          --set webhook.image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-webhook \
+          --set cainjector.image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-cainjector \
+          --set startupapicheck.image.repository={{ settings.rancher_config.registry_domain }}:5000/quay.io/jetstack/cert-manager-ctl
+        register: cert_manager_yaml_file_generation_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: generate cert-manager yaml files non-airgapped
+        ansible.builtin.shell: |
+          cd /home/vagrant && helm template cert-manager ./cert-manager-{{ settings.rancher_config.cert_manager_version }}.tgz --output-dir . \
+          --namespace cert-manager
+        register: cert_manager_yaml_file_generation_result
+        when: not settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: create cert-manager namespace
+        ansible.builtin.shell: |
+          kubectl create namespace cert-manager
+        register: cert_manager_namespace_create_result
+
+      - name: apply cert manger crd
+        ansible.builtin.shell: |
+          cd /home/vagrant && kubectl apply -f cert-manager/cert-manager-crd.yaml
+        register: cert_manager_crd_k8s_apply_result
+
+      - name: apply additional cert manager
+        ansible.builtin.shell: |
+          cd /home/vagrant && kubectl apply -R -f ./cert-manager
+
+      - name: copy rancher create-self-signed-cert.sh over
+        ansible.builtin.copy:
+          src: files/create-self-signed-cert.sh
+          dest: /home/vagrant/
+        register: copy_rancher_purposed_create_self_signed_cert_result
+
+      - name: make rancher create-self-signed-cert.sh executable
+        ansible.builtin.file:
+          dest: /home/vagrant/create-self-signed-cert.sh
+          mode: a+x
+        register: rancher_create_self_signed_script_made_executable_result
+
+      - name: create self signed cert
+        ansible.builtin.shell: |
+          cd /home/vagrant && ./create-self-signed-cert.sh --ssl-domain={{ settings.rancher_config.rancher_install_domain }} --ssl-trusted-ip={{ settings.rancher_config.node_harvester_network_ip }}
+        register: self_signed_cert_creation_result
+
+
+  - name: Install Rancher Via Helm
+    block: 
+      - name: create cattle-system namespace
+        ansible.builtin.shell: |
+          kubectl create ns cattle-system
+        register: create_cattle_system_namespace_result
+
+      - name: create tls-sa secret
+        ansible.builtin.shell: |
+          cd /home/vagrant && kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=./cacerts.pem
+        register: tls_sa_secret_from_pem_result
+
+      - name: create tls rancher ingress secret
+        ansible.builtin.shell: |
+          cd /home/vagrant && kubectl -n cattle-system create secret tls tls-rancher-ingress \
+          --cert=tls.crt \
+          --key=tls.key
+        register: rancher_ingress_secret_result
+
+      - name: Make /etc/rancher/k3s/k3s.yaml Open To all
+        ansible.builtin.shell: |
+          chmod 777 /etc/rancher/k3s//k3s.yaml
+        ignore_errors: yes
+
+      # TODO: find out the cause of why the: Error: chart requires kubeVersion: < 1.24.0-0 which is incompatible with Kubernetes v1.24.0
+      # ends up being displayed, it's however fixed with `--validate` added to the end of the template command
+      # ATTN: bootstrapPassword is broken in 2.6.5 Rancher, x-ref: https://github.com/rancher/rancher/issues/37779
+      #         --set bootstrapPassword={{ rancher_config.bootstrap_password }} \
+      # Seems like the "--no-hooks" migh thave been the culprit
+      # UPDATE: even though removing '--no-hooks' in template command with v2.6.5, there are still problems, surfaced more info in #37779
+      # There are some open issues in Rancher that concern this:
+      # - https://github.com/rancher/rancher/issues/37993
+      # - https://github.com/rancher/rancher/pull/37772
+      # - https://github.com/rancher/qa-tasks/issues/392
+      # - https://github.com/rancher/rancher/issues/37779
+      # We will be at versions greater than 2.6.4, installing 2.6.4 then upgrading
+      - name: install Rancher v2.6.4
+        ansible.builtin.command:
+          helm --kubeconfig /etc/rancher/k3s/k3s.yaml template rancher /home/vagrant/rancher-{{ settings.rancher_config.rancher_version_no_prefix }}.tgz --output-dir /home/vagrant --no-hooks --namespace cattle-system \
+          --set hostname={{ settings.rancher_config.rancher_install_domain }} \
+          --set rancherImageTag={{ settings.rancher_config.rancher_version }} \
+          --set rancherImage={{ settings.rancher_config.registry_domain }}:5000/rancher/rancher \
+          --set systemDefaultRegistry={{ settings.rancher_config.registry_domain }}:5000 \
+          --set bootstrapPassword={{ settings.rancher_config.bootstrap_password }} \
+          --set useBundledSystemChart=true \
+          --set replicas={{ settings.rancher_config.rancher_replicas }} \
+          --set ingress.tls.source=secret \
+          --set privateCA=true --validate
+        register: helm_rancher_generate_template_command_result
+        when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version == "v2.6.4")
+
+      - name: install Rancher v2.6.4 before upgrading to desired version
+        ansible.builtin.command:
+          helm --kubeconfig /etc/rancher/k3s/k3s.yaml template rancher /home/vagrant/rancher-2.6.4.tgz --output-dir /home/vagrant --no-hooks --namespace cattle-system \
+          --set hostname={{ settings.rancher_config.rancher_install_domain }} \
+          --set rancherImageTag={{ settings.rancher_config.rancher_version }} \
+          --set rancherImage={{ settings.rancher_config.registry_domain }}:5000/rancher/rancher \
+          --set systemDefaultRegistry={{ settings.rancher_config.registry_domain }}:5000 \
+          --set bootstrapPassword={{ settings.rancher_config.bootstrap_password }} \
+          --set useBundledSystemChart=true \
+          --set replicas=0 \
+          --set ingress.tls.source=secret \
+          --set privateCA=true --validate
+        register: helm_rancher_generate_template_command_result
+        when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version != "v2.6.4")
+
+      - name: install rancher airgapped
+        ansible.builtin.command: kubectl -n cattle-system apply -R -f /home/vagrant/rancher
+        register: install_rancher_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+      
+      - name: install rancher non-airgapped
+        ansible.builtin.command: 
+          helm --kubeconfig /etc/rancher/k3s/k3s.yaml install rancher rancher-latest/rancher --devel \
+          --version {{ settings.rancher_config.rancher_version }} \
+          --namespace cattle-system \
+          --set hostname={{ settings.rancher_config.rancher_install_domain }} \
+          --set rancherImageTag={{ settings.rancher_config.rancher_version }} \
+          --set bootstrapPassword={{ settings.rancher_config.bootstrap_password }} \
+          --set replicas={{ settings.rancher_config.rancher_replicas }} \
+          --set ingress.tls.source=secret \
+          --set privateCA=true
+        register: install_rancher_result
+        retries: 5
+        delay: 10
+        until: install_rancher_result is success
+        when: not (settings.rancher_config.run_single_node_air_gapped_rancher | bool)
+
+      - name: Output install_rancher_result Debug Msg
+        ansible.builtin.debug:
+          msg: "{{ install_rancher_result.stdout_lines }}"
+        ignore_errors: yes
+
+      - name: Wait For Rollout
+        ansible.builtin.shell: |
+          kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml rollout status deployment/rancher -n cattle-system
+
+      - name: template desired rancher over existing rancher
+        ansible.builtin.command:
+          helm --kubeconfig /etc/rancher/k3s/k3s.yaml template rancher /home/vagrant/rancher-{{ settings.rancher_config.rancher_version_no_prefix }}.tgz --output-dir /home/vagrant --no-hooks --namespace cattle-system \
+          --set hostname={{ settings.rancher_config.rancher_install_domain }} \
+          --set rancherImageTag={{ settings.rancher_config.rancher_version }} \
+          --set rancherImage={{ settings.rancher_config.registry_domain }}:5000/rancher/rancher \
+          --set systemDefaultRegistry={{ settings.rancher_config.registry_domain }}:5000 \
+          --set bootstrapPassword={{ settings.rancher_config.bootstrap_password }} \
+          --set useBundledSystemChart=true \
+          --set replicas={{ settings.rancher_config.rancher_replicas }} \
+          --set ingress.tls.source=secret \
+          --set privateCA=true --validate
+        register: helm_rancher_generate_template_command_result
+        when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version != "v2.6.4")
+      
+      - name: install rancher airgapped desired version over existing 2.6.4
+        ansible.builtin.command: kubectl -n cattle-system apply -R -f /home/vagrant/rancher
+        when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version != "v2.6.4")
+      
+      
+      - name: Wait For Second Rollout To Adjust from 2.6.4 to desired version
+        ansible.builtin.shell: |
+          kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml rollout status deployment/rancher -n cattle-system
+        when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version != "v2.6.4")
+
+
+  - name: Wait for Rancher To Become Available 
+    block: 
+      - name: Capture the Rancher node's password
+        ansible.builtin.shell: kubectl get secret --namespace cattle-system bootstrap-secret -o go-template={% raw %}'{{.data.bootstrapPassword|base64decode}}{{"\n"}}'{% endraw %}
+        retries: 30
+        delay: 10
+        register: rancher_node_default_password
+        until: rancher_node_default_password is success
+
+      - name: Wait For Single Rancher Node To Become Available Again Post Rollout Restart
+        ansible.builtin.uri:
+          url: "https://{{ settings.rancher_config.rancher_install_domain }}/dashboard/auth/login"
+          validate_certs: no
+          status_code: 200
+          timeout: 120
+          force: yes
+        register: rancher_url_helm_installed_replicas_result_again
+        until: rancher_url_helm_installed_replicas_result_again.status == 200
+        retries: 30
+        delay: 30
+
+      - name: Set Rancher Node Default Password As Fact
+        ansible.builtin.set_fact: default_rancher_password="{{ rancher_node_default_password.stdout_lines }}"
+

@@ -16,7 +16,7 @@
 
   - name: install PXE server
     shell: >
-      vagrant up pxe_server
+      VAGRANT_LOG=info vagrant up pxe_server
     register: pxe_server_installation_result
 
   - name: display PXE server installation result
@@ -44,14 +44,15 @@
     retries: 10
     delay: 30
 
-  - name: spin up single node air-gapped rancher 
+  - name: spin up single node rancher 
     shell: |
-        vagrant up rancher_box --debug
+        VAGRANT_LOG=debug vagrant up rancher_box
     register: rancher_box_vagrant_up_result
-    when: rancher_config.run_single_node_air_gapped_rancher | bool
+    when: rancher_config.run_single_node_rancher | bool
   
   - name: display single node air-gapped rancher install result 
     debug: var=rancher_box_vagrant_up_result.stdout_lines
+    ignore_errors: yes
 
   - name: boot Harvester nodes
     include: boot_harvester_node.yml
@@ -59,14 +60,123 @@
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
 
+  - name: Get the public VIP of the harvester cluster
+    set_fact:
+      harvester_public_endpoint:  "{{ harvester_network_config.vip.ip }}"
+
+  - name: get original admin token
+    ansible.builtin.uri:
+      url: https://{{ harvester_public_endpoint }}/v3-public/localProviders/local?action=login
+      method: POST
+      body: '{"username": "{{harvester_dashboard.admin_user}}", "password": "admin","responseType": "json", "description": "grab-initial-token to programatically set Harvester Rancher UI Admin Password"}'
+      body_format: json
+      follow_redirects: all
+      force: yes
+      status_code: 201
+      use_proxy: no
+      headers:
+        Content-Type: "application/json"
+      validate_certs: no
+    register: token
+    until: token.status == 201
+    retries: 10
+    delay: 60
+
+  - debug:
+      msg: |
+        original-token that was grabbed {{ token.json.token }}
+    ignore_errors: yes
+
+  - name: set admin token
+    ansible.builtin.uri:
+      url: https://{{ harvester_public_endpoint }}/v3/users?action=changepassword
+      method: POST
+      body: '{"currentPassword": "admin","newPassword": "{{harvester_dashboard.admin_password}}"}'
+      body_format: json
+      follow_redirects: all
+      force: yes
+      status_code: 200
+      use_proxy: no
+      validate_certs: no
+      headers:
+        Content-Type: "application/json"
+        Accept: "application/json"
+        Authorization: "Bearer {{ token.json.token }}"
+    register: admin_token_set
+    until: admin_token_set.status == 200
+    retries: 10
+    delay: 30
+  
+  - name: get new admin token
+    ansible.builtin.uri:
+      url: https://{{ harvester_public_endpoint }}/v3-public/localProviders/local?action=login
+      method: POST
+      body: '{"username": "{{harvester_dashboard.admin_user}}", "password": "{{harvester_dashboard.admin_password}}","responseType": "json", "description": "get a token using new set Harvester Rancher UI Credentials"}'
+      body_format: json
+      follow_redirects: all
+      force: yes
+      status_code: 201
+      use_proxy: no
+      headers:
+        Content-Type: "application/json"
+      validate_certs: no
+    register: new_token_created
+    until: new_token_created.status == 201
+    retries: 10
+    delay: 60
+
+  # - name: get admin token
+  #   shell: |
+  #     sleep 30
+  #     curl -k \
+  #         -d '{"username": "{{harvester_dashboard.admin_user}}", "password": "admin","responseType": "json"}' \
+  #         https://{{ harvester_public_endpoint }}/v3-public/localProviders/local?action=login | jq -r .token
+  #   register: token
+  #   until: token.stdout | length > 5
+  #   retries: 10
+  #   delay: 60
+
+  # - debug:
+  #     msg: |
+  #       old admin token: {{ token.stdout }}
+
+  # - name: set admin password
+  #   shell: |
+  #     curl -k -X POST \
+  #         -H "Authorization: Bearer {{ token.stdout }}" \
+  #         -H 'Accept: application/json' \
+  #         -H 'Content-Type: application/json' \
+  #         -d '{"currentPassword": "admin","newPassword": "{{harvester_dashboard.admin_password}}"}' \
+  #         https://{{ harvester_public_endpoint }}/v3/users?action=changepassword
+  #   register: setpw
+  #   until: setpw.stdout | length > 5
+  #   retries: 10
+  #   delay: 60
+
+  # - name: get new admin token
+  #   shell: |
+  #     sleep 30
+  #     curl -k \
+  #         -d '{"username": "admin", "password": "{{harvester_dashboard.admin_password}}","responseType": "json"}' \
+  #         https://{{ harvester_public_endpoint }}/v3-public/localProviders/local?action=login | jq -r .token
+  #   register: new_token
+  #   until: new_token.stdout | length > 5
+  #   retries: 10
+  #   delay: 60
+
+  - debug:
+      msg: |
+        new admin token: {{ new_token_created.json.token }}
+    ignore_errors: yes
+
   - name: create "Installation Completed" message
     shell: >
       figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
     register: figlet_result
-    when: not rancher_config.run_single_node_air_gapped_rancher | bool
+    when: not rancher_config.run_single_node_rancher | bool
 
   - name: print "Installation Completed"
     debug:
       msg: "{{ figlet_result.stdout }}"
-    when: not rancher_config.run_single_node_air_gapped_rancher | bool
+    when: not rancher_config.run_single_node_rancher | bool
 

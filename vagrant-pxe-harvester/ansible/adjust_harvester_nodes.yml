@@ -34,6 +34,7 @@
   ignore_errors: yes
   ignore_unreachable: yes
 
+
 - name: patch configmap rke2-coredns-rke2-coredns with updateded content
   shell: |
     /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml patch configmap/rke2-coredns-rke2-coredns -n kube-system \
@@ -41,6 +42,7 @@
   delegate_to: "{{ harvester_node_ip }}"
   ignore_errors: yes
   ignore_unreachable: yes 
+
 
 - name: copy rke2-coredns-rke2-coredns deployment edit over
   template:
@@ -50,10 +52,12 @@
   ignore_errors: yes
   ignore_unreachable: yes
 
+
 - name: patch deployment rke2-coredns-rke2-coredns with updated content
   shell: |
     /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml patch deployment/rke2-coredns-rke2-coredns -n kube-system \    
     --patch-file /etc/rancher/rke2/deployment-rke2-coredns-rke2-coredns.yaml
   delegate_to: "{{ harvester_node_ip }}"
   ignore_errors: yes
-  ignore_unreachable: yes    
+  ignore_unreachable: yes
+    
