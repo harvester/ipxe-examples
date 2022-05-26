@@ -1,4 +1,4 @@
-server_url: https://<YOUR_CLUSTER_IP_HERE>:8443
+server_url: https://<YOUR_CLUSTER_IP_HERE>:443
 token: token             # Replace with a desired token
 os:
   hostname: node2        # Set a hostname. This can be omitted if DHCP server offers hostnames.

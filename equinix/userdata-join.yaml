@@ -1,5 +1,5 @@
 #cloud-config
-server_url: https://<new_cluster_server_ip>:8443
+server_url: https://<new_cluster_server_ip>:443
 token: token           # replace with the token you set when creating a new cluster
 os:
   ssh_authorized_keys:
@@ -10,12 +10,6 @@ os:
   - 1.suse.pool.ntp.org
 install:
   mode: join
-  networks:
-    harvester-mgmt:    # The management bond name. This is mandatory.
-      interfaces:
-      - name: eth0
-      default_route: true
-      method: dhcp
   device: /dev/sda
   iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
   tty: ttyS1,115200n8
