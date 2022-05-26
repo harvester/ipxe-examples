@@ -12,9 +12,12 @@ Edit the `ipxe-install` file:
 
 ```
 #!ipxe
-
-kernel https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:https://releases.rancher.com/harvester/master/harvester-master-rootfs-amd64.squashfs console=ttyS1,115200 harvester.install.automatic=true harvester.install.config_url=https://metadata.platformequinix.com/userdata
-initrd https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
+dhcp
+iflinkwait -t 5000 && echo Detected link on ${ifname} 
+set version master # change to a specific version for production installation
+set base https://releases.rancher.com/harvester/${version}  # ipxe on Equinix currently does not support `https://release.rancher.com`, you can build your own web server or use other methods to download related artifacts.
+kernel ${base}/harvester-${version}-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:${base}/harvester-${version}-rootfs-amd64.squashfs harvester.install.networks.harvester-mgmt.interfaces="hwAddr:${net0/mac}" harvester.install.networks.harvester-mgmt.method=dhcp harvester.install.networks.harvester-mgmt.bond_options.mode=balance-tlb harvester.install.networks.harvester-mgmt.bond_options.miimon=100 console=ttyS1,115200 harvester.install.automatic=true boot_cmd="echo include_ping_test=yes >> /etc/conf.d/net-online" harvester.install.config_url=https://metadata.platformequinix.com/userdata
+initrd ${base}/harvester-${version}-initrd-amd64
 boot
 ```
 
@@ -26,7 +29,17 @@ The `harvester.install.automatic=true` parameter tells the installer we want to 
 
 The `harvester.install.config_url=https://metadata.platformequinix.com/userdata` parameter tells the installer we want to fetch the Harvester configuration from this URL, which contains the userdata specified by the user when creating nodes. The harvester configuration contains sensitive credentials. We can prevent those credentials from leaking by using [userdata](https://metal.equinix.com/developers/docs/servers/user-data/) that can only be seen by provisioning nodes.
 
+**Note:** Due to a known [certificate issue](https://github.com/harvester/harvester/issues/2226), ipxe on Equinix currently does not support `https://release.rancher.com`, you can build your own web server or use other methods to download related artifacts.
+
 ## Create servers on Equinix
+
+### Configure Elastic IP
+- Select `IPs & Networks` from the menu bar, and then click `IP`.
+- Click `Request IP Addresses`.
+- Select `Public IPv4` item for deployment type.
+- Select the `Location` to be new.
+- The quantity should be **less than or equal to 31**.
+- Click `Submit Request` and wait to get the Elastic IP.
 
 ### Create a new cluster
 
@@ -40,29 +53,31 @@ The `harvester.install.config_url=https://metadata.platformequinix.com/userdata`
 
     ```yaml
     #cloud-config
-    token: token  # replace with a desired token
+    token: token           # replace with a desired token
     os:
       ssh_authorized_keys:
-      - ssh-rsa ...  # replace with your public key
-      password: p@ssword  # replace with a your password
+      - ssh-rsa ...        # replace with your public key
+      password: p@ssword   # replace with a your password
+      ntp_servers:
+      - 0.suse.pool.ntp.org
+      - 1.suse.pool.ntp.org
     install:
       mode: create
-      networks:
-        harvester-mgmt: # The management bond name. This is mandatory.
-          interfaces:
-          - name: eth0
-          default_route: true
-          method: dhcp
       device: /dev/sda
       iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
       tty: ttyS1,115200n8
+      vip: <server_public_ip> # use Elastic IP
+      vip_mode: static
     ```
     - The [userdata file](./userdata-create.yaml) is included in the source and the user can modify it according to any need.
     - The Harvester installer doesn't require the `#cloud-config` line at the beginning, but Equinix Metal validates if the userdata contains it.
+    - The `vip` parameter is required.
+  - To configure Elastic IP for `Public IPv4`, enable `Configure IPs`, select `Deploy from your subnet` and select that the `Subnet Size` should be less than or equal to 31.
+  ![configure-ips](configure-ips.png)
 
 - Click `Deploy Now`
 - The user can use the SOS console of the provisioned server to see the installation process.
-- The Harvester GUI can be accessed at `https://<server_public_ip>:30443`.
+- The Harvester GUI can be accessed at `https://<server_public_ip>`.
 
 
 ### Join an existing cluster
@@ -73,7 +88,7 @@ The only difference is in the [userdata](./userdata-join.yaml):
 
 ```yaml
 #cloud-config
-server_url: https://<new_cluster_server_ip>:8443
+server_url: https://<new_cluster_server_ip>:443
 token: token  # replace with the token you set when creating a new cluster
 os:
   ssh_authorized_keys:
@@ -98,3 +113,5 @@ install:
 - `install.mode`: Should be `join`.
 
 **NOTE:** the user can create multiple servers to join a cluster with the same userdata at once.
+
+

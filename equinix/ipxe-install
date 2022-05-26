@@ -1,5 +1,8 @@
 #!ipxe
-
-kernel https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:https://releases.rancher.com/harvester/master/harvester-rootfs-amd64.squashfs console=ttyS1,115200 harvester.install.automatic=true harvester.install.config_url=https://metadata.platformequinix.com/userdata
-initrd https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
+dhcp
+iflinkwait -t 5000 && echo Detected link on ${ifname} 
+set version master # change to a specific version for production installation
+set base https://releases.rancher.com/harvester/${version}  # ipxe on Equinix currently does not support `https://release.rancher.com`, you can build your own web server or use other methods to download related artifacts.
+kernel ${base}/harvester-${version}-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:${base}/harvester-${version}-rootfs-amd64.squashfs harvester.install.networks.harvester-mgmt.interfaces="hwAddr:${net0/mac}" harvester.install.networks.harvester-mgmt.method=dhcp harvester.install.networks.harvester-mgmt.bond_options.mode=balance-tlb harvester.install.networks.harvester-mgmt.bond_options.miimon=100 console=ttyS1,115200 harvester.install.automatic=true boot_cmd="echo include_ping_test=yes >> /etc/conf.d/net-online" harvester.install.config_url=https://metadata.platformequinix.com/userdata
+initrd ${base}/harvester-${version}-initrd-amd64
 boot
