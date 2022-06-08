@@ -23,6 +23,11 @@
     debug:
       msg: "{{ pxe_server_installation_result.stdout }}"
 
+  - name: re-provision PXE server
+    shell: >
+      vagrant provision pxe_server
+    when: provision |bool
+
   - name: get the IP address of pxe_server
     shell: |
       vagrant ssh-config pxe_server 2>/dev/null | grep HostName | awk '{ print $2 }'

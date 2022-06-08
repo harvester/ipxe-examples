@@ -17,6 +17,9 @@ Prerequisites
 -   vagrant-libvirt plugin \>= 0.0.43.
 -   KVM (i.e. qemu-kvm), preferably the latest and greatest. This
     environment was tested with qemu-kvm 2.11.
+-   Please confirm that your libvirtd service is active.
+-   OVMF.fd may not exists on your local environment, you could
+    boot with legacy(BIOS) mode or try to make it work.
 -   Host with at least 16 CPU, 64GB RAM, and 500GB free disk space.
 
 Quick Start
@@ -28,7 +31,7 @@ Quick Start
     depending on configuration).
 3.  If successful, run `vagrant status` to see the status of the Vagrant
     boxes.
-4.  Point your browser to `https://<harvester_vip>:30443` to
+4.  Point your browser to `https://<harvester_vip>` to
     access the Harvester UI. Just ignore the scary SSL warnings for now
     as it is using self-signed certificates for demo purposes.
     *NOTE*: by default `harvester_vip` is `192.168.0.131`. However, it is
