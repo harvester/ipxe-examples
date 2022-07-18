@@ -1,0 +1,5 @@
+[harvesternodes]
+192.168.0.30 ansible_host=192.168.0.30 ansible_user=rancher ansible_connection=smart ansible_password=p@ssword
+192.168.0.31 ansible_host=192.168.0.31 ansible_user=rancher ansible_connection=smart ansible_password=p@ssword
+192.168.0.32 ansible_host=192.168.0.32 ansible_user=rancher ansible_connection=smart ansible_password=p@ssword
+192.168.0.33 ansible_host=192.168.0.33 ansible_user=rancher ansible_connection=smart ansible_password=p@ssword

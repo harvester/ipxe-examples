@@ -14,7 +14,7 @@
 
 - name: boot Harvester Node {{ node_number }}
   shell: >
-    vagrant up harvester-node-{{ node_number }}
+    VAGRANT_LOG=info vagrant up harvester-node-{{ node_number }}
   register: harvester_node_boot_result
 
 - name: wait for Harvester Node {{ harvester_node_ip }} to get ready
@@ -25,5 +25,5 @@
     timeout: 120
   register: auth_modes_lookup_result
   until: auth_modes_lookup_result.status == 200
-  retries: 20
+  retries: 35
   delay: 120
