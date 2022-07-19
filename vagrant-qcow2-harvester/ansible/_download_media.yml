@@ -1,0 +1,23 @@
+---
+- name: download Harvester media
+  get_url:
+    url: "{{ harvester_media_url }}"
+    dest: "../disks/box.img"
+
+- name: copy files for box packaging
+  copy:
+    src: metadata.json
+    dest: ../disks
+
+- name: copy files for box packaging
+  copy:
+    src: Vagrantfile
+    dest: ../disks
+
+- name: create harvester box
+  shell: tar -czf ../disks/harvester.box -C ../disks box.img metadata.json Vagrantfile
+
+#- name: remove old image file
+#  file:
+#    path: "../disks/box.img"
+#    state: absent

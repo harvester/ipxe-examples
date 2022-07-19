@@ -1,0 +1,66 @@
+# vi: set ft=ruby ts=2 :
+
+require 'yaml'
+
+VAGRANTFILE_API_VERSION = "2"
+
+# check for required plugins
+_required_plugins_list = %w{vagrant-libvirt}
+exit(1) unless _required_plugins_list.all? do |plugin|
+  Vagrant.has_plugin?(plugin) || (
+    STDERR.puts "Required plugin '#{plugin}' is missing; please install using:"
+    STDERR.puts "  % vagrant plugin install #{plugin}"
+    false
+  )
+end
+
+# ensure libvirt is the default provider in case the vagrant box config
+# doesn't specify it
+ENV['VAGRANT_DEFAULT_PROVIDER'] = "libvirt"
+
+@root_dir = File.dirname(File.expand_path(__FILE__))
+@settings = YAML.load_file(File.join(@root_dir, "settings.yml"))
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  # continerd is taking more than 60 seconds to shutdown in SUSE platforms
+  # so increase the timeout to 120 seconds
+  config.vm.graceful_halt_timeout = 120
+  config.vm.box = "harvester"
+  config.ssh.username = "rancher"
+  #config.vm.network "private_network",
+  #  libvirt__network_name: "harvester",
+  #  libvirt__ip_address: @settings['harvester_network_config']['dhcp_server']['subnet'],
+  #  libvirt__network_address: @settings['harvester_network_config']['dhcp_server']['subnet'],
+  #  libvirt__dhcp_start: @settings['harvester_network_config']['dhcp_server']['dhcp_start'],
+  #  libvirt__dhcp_stop: @settings['harvester_network_config']['dhcp_server']['dhcp_stop'],
+  #  libvirt__netmask: @settings['harvester_network_config']['dhcp_server']['netmask'],
+  #  libvirt__guest_ipv6: "no"
+
+  (0..1).each do |node_number|
+    vm_name = "harvester-node-#{node_number}"
+    config.vm.define vm_name, autostart: false do |harvester_node|
+      harvester_node.vm.hostname = "harvester-node-#{node_number}"
+      harvester_node.vm.network 'private_network',
+        libvirt__network_name: "harvester",
+        mac: @settings['harvester_network_config']['cluster'][node_number]['mac'],
+        ip: @settings['harvester_network_config']['cluster'][node_number]['ip'],
+        auto_config: false,
+        libvirt__network_name: "harvester",
+        libvirt__ip_address: @settings['harvester_network_config']['dhcp_server']['subnet'],
+        libvirt__network_address: @settings['harvester_network_config']['dhcp_server']['subnet'],
+        libvirt__dhcp_start: @settings['harvester_network_config']['dhcp_server']['dhcp_start'],
+        libvirt__dhcp_stop: @settings['harvester_network_config']['dhcp_server']['dhcp_stop'],
+        libvirt__netmask: @settings['harvester_network_config']['dhcp_server']['netmask'],
+        libvirt__guest_ipv6: "no"
+      harvester_node.vm.provider :libvirt do |libvirt|
+        libvirt.cpu_mode = 'host-passthrough'
+        libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
+        libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
+        libvirt.boot 'hd'
+        libvirt.nic_model_type = 'e1000'
+        libvirt.storage :file, :device => :cdrom, :bus => :ide, :type => :raw, :path => "/tmp/create.iso"
+      end
+    end
+  end
+end

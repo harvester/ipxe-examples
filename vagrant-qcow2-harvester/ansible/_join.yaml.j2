@@ -1,0 +1,36 @@
+# example from https://github.com/harvester/ipxe-examples/blob/main/general/config-join.yaml
+
+server_url: https://{{ harvester_network_config['vip']['ip'] }}:443
+token: {{ harvester_config['token'] }}
+os:
+  hostname: harvester-node-{{ node_number }}
+  ssh_authorized_keys:
+{% for ssh_key in harvester_config['ssh_authorized_keys'] %}
+    - {{ ssh_key }}
+{% endfor %}
+  password: {{ harvester_config['password'] }}
+  ntp_servers:
+{% for ntp_server in harvester_config['ntp_servers'] %}
+    - {{ ntp_server }}
+{% endfor %}  
+  dns_nameservers:
+{% for dns_server in harvester_config['dns_servers'] %}
+    - {{ dns_server }}
+{% endfor %}
+install:
+  mode: join
+  automatic: true
+  networks:
+    harvester-mgmt:
+      interfaces:
+      - name: {{ harvester_network_config['cluster'][node_number | int]['mgmt_interface'] }}   # The management interface name
+      method: static
+      ip: {{ harvester_network_config['cluster'][node_number | int]['ip'] }}
+      gateway: 192.168.0.1
+      subnetMask: 255.255.255.0
+    bond0:
+      interfaces:
+      - name: {{ harvester_network_config['cluster'][node_number | int]['vagrant_interface'] }}
+      method: dhcp
+#  tty: ttyS1,115200n8   # For machines without a VGA console
+  tty: ttyS0

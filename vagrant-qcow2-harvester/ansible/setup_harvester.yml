@@ -1,0 +1,59 @@
+---
+- name: Setup Harvester
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+
+  - name: show var one
+    ansible.builtin.debug:
+      var: demo
+
+  - name: show vars
+    ansible.builtin.debug:
+      var: harvester_config['token']
+
+  - name: copy config-create.yaml
+    template:
+      src: "_create.yaml.j2"
+      dest: "/tmp/create.yaml"
+
+  - name: set node sequence fact
+    set_fact:
+      end_sequence: "{{ harvester_cluster_nodes - 1 if harvester_cluster_nodes > 1 else 1 }}"
+
+  - name: copy config-join.yaml
+    template:
+      src: "_join.yaml.j2"
+      dest: "/tmp/join-{{ item }}.yaml"
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: "start=1 end={{ end_sequence }}"
+
+  - name: create directory for disks
+    file:
+      path: ../disks
+      mode: '0755'
+      state: directory
+
+#  - name: setup harvester images
+#    include: _download_media.yml
+#    vars:
+#      harvester_media_url: "{{ harvester_qcow_url }}"
+
+#  - name: boot Harvester nodes
+#    include: boot_harvester_node.yml
+#    vars:
+#      node_number: "{{ item }}"
+#    with_sequence: 0-{{ harvester_cluster_nodes - 1 if harvester_cluster_nodes > 1 else 0 }}
+
+#  - name: create "Installation Completed" message
+#    shell: >
+#      figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
+#    register: figlet_result
+
+#  - name: print "Installation Completed"
+#    debug:
+#      msg: "{{ figlet_result.stdout }}"
+
