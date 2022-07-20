@@ -1,4 +1,4 @@
-Harvester iPXE Boot Using Vagrant Libvirt
+Harvester Boot Using Qcow2 images and Vagrant Libvirt
 =========================================
 
 Introduction
@@ -6,8 +6,7 @@ Introduction
 
 Utilizing [Vagrant][vagrant], [KVM][kvm], and [Ansible][ansible] to create a
 ready-to-play virtual Harvester environment for evaluation and testing
-purposes. Two Vagrant VMs will be created by default, PXE server and a
-single-node Harvester respectively.
+purposes. A single-node Harvester will be created by default.
 
 Prerequisites
 -------------
@@ -18,6 +17,7 @@ Prerequisites
 -   KVM (i.e. qemu-kvm), preferably the latest and greatest. This
     environment was tested with qemu-kvm 2.11.
 -   Host with at least 16 CPU, 64GB RAM, and 500GB free disk space.
+-   cloud-localds to package iso files for injecting cloud-init.
 
 Quick Start
 -----------
@@ -36,11 +36,6 @@ Quick Start
 
 Acknowledgements
 ----------------
-
--   The Vagrant iPXE environment idea was borrowed from
-    <https://github.com/eoli3n/vagrant-pxe>.
-
-
 [ansible]: https://www.ansible.com
 [kvm]: https://www.linux-kvm.org
 [vagrant]: https://www.vagrantup.com
