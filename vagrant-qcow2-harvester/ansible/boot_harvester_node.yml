@@ -14,7 +14,7 @@
 
 - name: boot Harvester Node {{ node_number }}
   shell: >
-    VAGRANT_EXPERIMENTAL="cloud_init" vagrant up harvester-node-{{ node_number }}
+    vagrant up harvester-node-{{ node_number }}
   register: harvester_node_boot_result
 
 - name: wait for Harvester Node {{ harvester_node_ip }} to get ready

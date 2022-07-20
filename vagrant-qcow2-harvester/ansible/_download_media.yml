@@ -17,7 +17,15 @@
 - name: create harvester box
   shell: tar -czf ../disks/harvester.box -C ../disks box.img metadata.json Vagrantfile
 
-#- name: remove old image file
-#  file:
-#    path: "../disks/box.img"
-#    state: absent
+- name: add harvester box
+  shell: vagrant box add harvester ../disks/harvester.box --force
+
+- name: remove old image file
+  file:
+    path: "../disks/box.img"
+    state: absent
+
+- name: remove box
+  file:
+    path: "../disks/harvester.box"
+    state: absent

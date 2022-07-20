@@ -24,7 +24,7 @@ install:
       - name: {{ harvester_network_config['cluster'][0]['mgmt_interface'] }} 
       method: static
       ip: {{ harvester_network_config['cluster'][0]['ip'] }}
-      gateway: 192.168.0.1
+      gateway: {{ harvester_network_config['dhcp_server']['gateway'] }}
       subnetMask: 255.255.255.0
     bond0:
       interfaces:

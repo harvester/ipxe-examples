@@ -28,19 +28,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.graceful_halt_timeout = 120
   config.vm.box = "harvester"
   config.ssh.username = "rancher"
-  #config.vm.network "private_network",
-  #  libvirt__network_name: "harvester",
-  #  libvirt__ip_address: @settings['harvester_network_config']['dhcp_server']['subnet'],
-  #  libvirt__network_address: @settings['harvester_network_config']['dhcp_server']['subnet'],
-  #  libvirt__dhcp_start: @settings['harvester_network_config']['dhcp_server']['dhcp_start'],
-  #  libvirt__dhcp_stop: @settings['harvester_network_config']['dhcp_server']['dhcp_stop'],
-  #  libvirt__netmask: @settings['harvester_network_config']['dhcp_server']['netmask'],
-  #  libvirt__guest_ipv6: "no"
+  config.vm.synced_folder ".", "/vagrant", disabled: true
 
-  (0..1).each do |node_number|
+  cluster_node_index = @settings['harvester_cluster_nodes'] - 1
+  (0..cluster_node_index).each do |node_number|
     vm_name = "harvester-node-#{node_number}"
+    iso = File.join(@root_dir, "/disks/create.iso")
+    if node_number > 0 
+      iso = File.join(@root_dir, "/disks/join-#{node_number}.iso")
+    end
     config.vm.define vm_name, autostart: false do |harvester_node|
       harvester_node.vm.hostname = "harvester-node-#{node_number}"
+      harvester_node.vm.guest = "linux"
       harvester_node.vm.network 'private_network',
         libvirt__network_name: "harvester",
         mac: @settings['harvester_network_config']['cluster'][node_number]['mac'],
@@ -59,7 +58,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
         libvirt.boot 'hd'
         libvirt.nic_model_type = 'e1000'
-        libvirt.storage :file, :device => :cdrom, :bus => :ide, :type => :raw, :path => "/tmp/create.iso"
+        libvirt.storage :file, :device => :cdrom, :bus => :ide, :type => :raw, :path => iso
       end
     end
   end

@@ -26,11 +26,10 @@ install:
       - name: {{ harvester_network_config['cluster'][node_number | int]['mgmt_interface'] }}   # The management interface name
       method: static
       ip: {{ harvester_network_config['cluster'][node_number | int]['ip'] }}
-      gateway: 192.168.0.1
+      gateway: {{ harvester_network_config['dhcp_server']['gateway'] }}
       subnetMask: 255.255.255.0
     bond0:
       interfaces:
       - name: {{ harvester_network_config['cluster'][node_number | int]['vagrant_interface'] }}
       method: dhcp
-#  tty: ttyS1,115200n8   # For machines without a VGA console
   tty: ttyS0
