@@ -1,4 +1,5 @@
 ---
+# TODO: Rip this apart into smaller tasks yaml files, as to avoid having one massive main.yml file
   - name: Initial package setup, partitioning, host file modification, docker mount building
     block:
       - name: update /etc/hosts
@@ -12,7 +13,7 @@
           ip link set eth1 down
 
       - name: check connection to google first...so apt update doesn't fail
-        uri:
+        ansible.builtin.uri:
           url: "https://www.google.com"
         retries: 5
         delay: 10
@@ -454,6 +455,19 @@
 
     when: (settings.rancher_config.run_single_node_air_gapped_rancher | bool) and (settings.rancher_config.rancher_version != "v2.6.4")
 
+  - name: Acquire K9s
+    block:
+      - name: Download K9s with 
+        retries: 30
+        delay: 10
+        ansible.builtin.get_url:
+          force: yes
+          timeout: 30
+          url: https://github.com/derailed/k9s/releases/download/{{ settings.rancher_config.k9s_version }}/k9s_Linux_x86_64.tar.gz
+          dest: /home/vagrant/k9s_Linux_x86_64.tar.gz
+        register: download_k9s_result
+        until: download_k9s_result is success
+
 
   - name: Move over K3s and build Cert-Manager CRDS
     block:
@@ -621,8 +635,7 @@
 
       - name: Make /etc/rancher/k3s/k3s.yaml Open To all
         ansible.builtin.shell: |
-          chmod 777 /etc/rancher/k3s//k3s.yaml
-        ignore_errors: yes
+          chmod 755 /etc/rancher/k3s/k3s.yaml
 
       # TODO: find out the cause of why the: Error: chart requires kubeVersion: < 1.24.0-0 which is incompatible with Kubernetes v1.24.0
       # ends up being displayed, it's however fixed with `--validate` added to the end of the template command

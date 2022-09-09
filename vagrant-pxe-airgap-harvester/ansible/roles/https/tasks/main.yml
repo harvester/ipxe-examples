@@ -1,0 +1,46 @@
+---
+- name: create config file
+  template:
+    src: "openssl.conf.j2"
+    dest: /var/www/openssl.conf
+
+- name: generate SSL Key
+  command: >
+    openssl req -x509 -nodes -days 365 
+    -config /var/www/openssl.conf
+    -keyout /etc/ssl/private/nginx-selfsigned.key
+    -out /etc/ssl/certs/nginx-selfsigned.crt
+  # To verify IP SANs:
+  # openssl x509 -in /etc/ssl/certs/nginx-selfsigned.crt --noout -text | grep "Subject Alternative" -A5
+
+- name: generate pem for nginx
+  command: openssl dhparam -dsaparam -out /etc/nginx/dhparam.pem 4096
+
+- name: copy configuration
+  copy:
+    src: '{{item}}'
+    dest: '/etc/nginx/snippets/'
+  loop:
+    - self-signed.conf
+    - ssl-params.conf
+
+- name: configure https site
+  copy:
+    src: https
+    dest: /etc/nginx/sites-available
+  notify: restart nginx
+
+- name: enable https site
+  file:
+    src: /etc/nginx/sites-available/https
+    dest: /etc/nginx/sites-enabled/https
+    state: link
+  notify: restart nginx
+
+- name: show CA cert
+  command: cat /etc/ssl/certs/nginx-selfsigned.crt
+  register: command_output
+
+- name: Print to console
+  debug:
+    msg: "{{command_output.stdout}}"
