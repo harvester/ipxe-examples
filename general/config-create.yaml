@@ -9,22 +9,14 @@ os:
   - 1.suse.pool.ntp.org
 install:
   mode: create
-  networks:
-    harvester-mgmt:       # (Mandatory) The management bond name.
-      interfaces:
-      - name: ens5
-      default_route: true
-      method: dhcp
-      bond_options:
-        mode: balance-tlb
-        miimon: 100
-    harvester-vlan:       # (Optional) The VLAN network bond name. If VLAN NIC names vary from
-      interfaces:         # host to host, consider creating a bonding device. Users can then select
-      - name: ens6        # `harvester-vlan` as the VLAN network NIC in the Harvester GUI.
-      method: none
-      bond_options:
-        mode: balance-tlb
-        miimon: 100
+  management_interface:
+    interfaces:
+    - name: ens5
+    default_route: true
+    method: dhcp
+    bond_options:
+      mode: balance-tlb
+      miimon: 100
   device: /dev/sda       # The target disk to install
   iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
 #  tty: ttyS1,115200n8   # For machines without a VGA console

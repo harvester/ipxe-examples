@@ -15,15 +15,10 @@ os:
 {% endfor %}
 install:
   mode: join
-  networks:
-    harvester-mgmt:
-      interfaces:
-      - name: {{ settings['harvester_network_config']['cluster'][node_number | int]['mgmt_interface'] }}   # The management interface name
-      method: dhcp
-    bond0:
-      interfaces:
-      - name: {{ settings['harvester_network_config']['cluster'][node_number | int]['vagrant_interface'] }}
-      method: dhcp
+  management_interface:
+    interfaces:
+    - name: {{ settings['harvester_network_config']['cluster'][node_number | int]['mgmt_interface'] }}  # The management interface name
+    method: dhcp
   device: /dev/vda       # The target disk to install
   iso_url: http://{{ hostvars['pxe_server']['ansible_eth0']['ipv4']['address'] }}/harvester/harvester-amd64.iso
 #  tty: ttyS1,115200n8   # For machines without a VGA console
