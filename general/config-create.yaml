@@ -1,3 +1,4 @@
+scheme_version: 1
 token: token             # Replace with a desired token
 os:
   hostname: node1        # Set a hostname. This can be omitted if DHCP server offers hostnames.
