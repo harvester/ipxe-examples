@@ -496,12 +496,34 @@
   - name: Network Cutover AirGap the VM and Load Images into Registry
     block:
       - name: ip link eth1 back up
-        ansible.builtin.command: ip link set eth1 up
+        ansible.builtin.shell: |
+          ip link set eth1 up
+        register: eth1_back_up
 
       # turn off the eth0, which is default network
       - name: disable eth0, default network, switch pure to harvester
-        ansible.builtin.command: ip link set eth0 down
+        ansible.builtin.shell: |
+          ip link set eth0 down
         register: ifconfig_eth0_disabling_result
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      # TODO: implement a better fix, this is to prevent rke-metadata-config calls from taking place
+      - name: disable rancher.com access
+        ansible.builtin.shell: |
+          echo "ALL : .rancher.com" >> /etc/hosts.deny
+        register: disable_rancher_access
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+      
+      - name: ip tables drop output eth0 
+        ansible.builtin.shell: |
+          iptables -A OUTPUT -o eth0 -j DROP 
+        register: ip_tbl_output_drp
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: ip tables drop forward eth0 
+        ansible.builtin.shell: |
+          iptables -A FORWARD -o eth0 -j DROP 
+        register: ip_tbl_forward_drp
         when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
 
       - name: test disabling didn't break pipe
@@ -760,3 +782,33 @@
       - name: Set Rancher Node Default Password As Fact
         ansible.builtin.set_fact: default_rancher_password="{{ rancher_node_default_password.stdout_lines }}"
 
+  - name: Make Coredns Deployment and Configmap Edits
+    block: 
+      - name: copy coredns configmap over
+        template:
+          src: "configmap-coredns.yaml.j2"
+          dest: /tmp/configmap-coredns.yaml
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+   
+      - name: patch configmap coredns
+        shell: |
+          /usr/local/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml patch configmap/coredns -n kube-system \
+          --patch-file /tmp/configmap-coredns.yaml
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: copy coredns deployment over
+        template:
+          src: "deployment-coredns.yaml.j2"
+          dest: /tmp/coredns-deployment.yaml
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: patch deployment coredns
+        shell: |
+          /usr/local/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml patch deployment/coredns -n kube-system \    
+          --patch-file /tmp/coredns-deployment.yaml
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
+
+      - name: restart coredns
+        shell: |
+          /usr/local/bin/kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml rollout restart deployment/coredns -n kube-system
+        when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
