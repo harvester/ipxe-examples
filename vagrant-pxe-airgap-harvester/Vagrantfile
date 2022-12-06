@@ -87,7 +87,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Ensuring we can connect over the harvester net, not the temporary eth0 that will be cut
     rancher_box.vm.provision :ansible do |ansible|
         ansible.verbose ="vvv"
-        # ansible.inventory_path = "inventories/vagrant"
+        ansible.inventory_path = "inventories/vagrant"
         ansible.playbook = 'ansible/setup_rancher_node.yml'
         ansible.extra_vars = {
             settings: @settings

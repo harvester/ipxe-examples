@@ -1,5 +1,33 @@
 ---
 # TODO: Rip this apart into smaller tasks yaml files, as to avoid having one massive main.yml file
+  - name: Setup Networking
+    block:
+      - name: update sshd config
+        ansible.builtin.shell: |
+          echo "ListenAddress {{ settings.rancher_config.node_harvester_network_ip  }}" >> /etc/ssh/sshd_config
+        register: shifted_network_sshd
+      
+      - name: restart sshd
+        ansible.builtin.service:
+          name: ssh
+          state: restarted
+      
+      # since harvester network cant communicate outbound, we need to get packages and such prior
+      # to network cutover
+      - name: remove ip route 
+        ansible.builtin.shell: |
+          ip route del to default via 192.168.0.254
+
+      # - name: Reboot host and wait for it to restart
+      #   ansible.builtin.reboot:
+      #     msg: "Reboot initiated by Ansible"
+      #     connect_timeout: 5
+      #     reboot_timeout: 300
+      #     pre_reboot_delay: 0
+      #     post_reboot_delay: 30
+      #     test_command: whoami
+
+
   - name: Initial package setup, partitioning, host file modification, docker mount building
     block:
       - name: update /etc/hosts
@@ -7,10 +35,10 @@
           echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip }} {{ settings.rancher_config.registry_domain }}" >> /etc/hosts \
           && echo "" >> /etc/hosts && echo "{{ settings.rancher_config.node_harvester_network_ip  }} {{ settings.rancher_config.rancher_install_domain }}" >> /etc/hosts
         register: host_update_result
-      
-      - name: flip off eht1 temporarily
-        ansible.builtin.shell: >
-          ip link set eth1 down
+    
+    # - name: flip off eht1 temporarily
+      #   ansible.builtin.shell: >
+      #     ip link set eth1 down
 
       - name: check connection to google first...so apt update doesn't fail
         ansible.builtin.uri:
@@ -495,10 +523,10 @@
 
   - name: Network Cutover AirGap the VM and Load Images into Registry
     block:
-      - name: ip link eth1 back up
-        ansible.builtin.shell: |
-          ip link set eth1 up
-        register: eth1_back_up
+      # - name: ip link eth1 back up
+      #   ansible.builtin.shell: |
+      #     ip link set eth1 up
+      #   register: eth1_back_up
 
       # turn off the eth0, which is default network
       - name: disable eth0, default network, switch pure to harvester
@@ -506,8 +534,16 @@
           ip link set eth0 down
         register: ifconfig_eth0_disabling_result
         when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
-
-      # TODO: implement a better fix, this is to prevent rke-metadata-config calls from taking place
+      
+      - name: ip route enable back for harvester 
+        ansible.builtin.shell: | 
+          ip route replace default via 192.168.0.254 dev eth1
+      
+      # - name: delete ip route from other interface
+      #   ansible.builtin.shell: |
+      #     ip route delete $(ip -f inet addr show eth0 | sed -En -e 's/.*inet ([0-9.]+).*/\1/p')/24 dev eth0
+    
+      # # TODO: implement a better fix, this is to prevent rke-metadata-config calls from taking place
       - name: disable rancher.com access
         ansible.builtin.shell: |
           echo "ALL : .rancher.com" >> /etc/hosts.deny
