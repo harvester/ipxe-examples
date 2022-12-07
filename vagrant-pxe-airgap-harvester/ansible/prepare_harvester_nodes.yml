@@ -1,0 +1,50 @@
+---
+- name: Adjust Harvester Nodes If Needed
+  hosts: harvesternodes
+  connection: local
+  gather_facts: false
+  become: yes
+  ignore_unreachable: yes
+  ignore_errors: yes
+
+
+  tasks:
+  - name: making adjustments
+    shell: |
+      echo "starting to make adjustments to harvester nodes..."
+    ignore_errors: yes
+    ignore_unreachable: yes
+    when: rancher_config.run_single_node_rancher | bool
+
+
+
+  - name: make Harvester nodes adjusted for rancher
+    include: adjust_harvester_nodes.yml
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
+    ignore_errors: yes
+    ignore_unreachable: yes
+    when: rancher_config.run_single_node_rancher | bool
+
+  - name: Output Additional Info
+    block:
+      - name: Remind viewer of etc hosts
+        ansible.builtin.debug:
+          msg: "Please remember, in order for hostname resolution to work for Rancher you may need to update your etc/hosts file with something like: {{ rancher_config.node_harvester_network_ip }}	{{ rancher_config.rancher_install_domain }}"
+        ignore_errors: yes
+
+      - name: Output The Rancher URL
+        ansible.builtin.debug:
+          msg: "The Rancher URL should be: https://{{ rancher_config.rancher_install_domain }}"
+        ignore_errors: yes
+
+      - name: Output The Harvester URL
+        ansible.builtin.debug:
+          msg: "The Harvester URL should be: https://{{ harvester_network_config.vip.ip }}"
+        ignore_errors: yes
+
+      - name: Output Additional Info
+        ansible.builtin.debug:
+          msg: "Additionally, if you have set this up on a remote server be mindful that the IPv4 address you will not be able to access directly - you may look into something like 'sshuttle -r user@111.222.333.444 -x IP.V4.CIDR.BLOCK -vv' of what was set up to funnel requests over sshuttle tunnel- note you will also need to update your /etc/hosts prior"
+        ignore_errors: yes

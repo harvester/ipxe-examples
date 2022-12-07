@@ -1,0 +1,9 @@
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    include snippets/self-signed.conf;
+    include snippets/ssl-params.conf;
+    location    / {
+        root    /var/www;
+    }
+}

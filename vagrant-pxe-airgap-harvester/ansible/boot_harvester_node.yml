@@ -1,0 +1,29 @@
+---
+- name: create "Booting Node {{ node_number}}" message
+  shell: >
+    figlet "Booting Node {{ node_number }}" 2>/dev/null || echo "Booting Node {{ node_number }}"
+  register: figlet_result
+
+- name: print "Booting Node {{ node_number }}"
+  debug:
+    msg: "{{ figlet_result.stdout }}"
+
+- name: set Harvester Node IP fact
+  set_fact:
+    harvester_node_ip: "{{ harvester_network_config['cluster'][node_number | int]['ip'] }}"
+
+- name: boot Harvester Node {{ node_number }}
+  shell: >
+    VAGRANT_LOG=info vagrant up harvester-node-{{ node_number }}
+  register: harvester_node_boot_result
+
+- name: wait for Harvester Node {{ harvester_node_ip }} to get ready
+  uri:
+    url: "https://{{ harvester_node_ip }}"
+    validate_certs: no
+    status_code: 200
+    timeout: 120
+  register: auth_modes_lookup_result
+  until: auth_modes_lookup_result.status == 200
+  retries: 35
+  delay: 120

@@ -1,0 +1,61 @@
+---
+- name: set Harvester Node IP fact for new host group built
+  set_fact:
+    harvester_node_ip: "{{ harvester_network_config['cluster'][node_number | int]['ip'] }}"
+
+- name: edit hosts with the docker registry domain on harvester node
+  shell: |
+    echo "" >> /etc/hosts && echo "{{ rancher_config.node_harvester_network_ip }} {{ rancher_config.registry_domain }} {{ rancher_config.rancher_install_domain }}" >> /etc/hosts
+
+- name: copy rke2 registries over
+  template:
+    src: roles/harvester/templates/registries-edit.yaml.j2
+    dest: /etc/rancher/rke2/registries.yaml
+  register: copy_rke2_registries_yaml_result
+  delegate_to: "{{ harvester_node_ip }}"
+  ignore_errors: yes
+  ignore_unreachable: yes
+
+- name: restart rke2 service on node
+  systemd:
+    name: rke2-server.service
+    state: restarted
+  delegate_to: "{{ harvester_node_ip }}"
+  ignore_errors: yes
+  ignore_unreachable: yes
+  register: rke2_harvester_node_restart_result
+
+
+- name: copy rke2-coredns-rke2-coredns configmap edit over
+  template:
+    src: roles/harvester/templates/configmap-rke2-coredns-rke2-coredns.yaml.j2
+    dest: /etc/rancher/rke2/patch-configmap-rke2-coredns-rke2-coredns.yaml
+  delegate_to: "{{ harvester_node_ip }}"
+  ignore_errors: yes
+  ignore_unreachable: yes
+
+
+- name: patch configmap rke2-coredns-rke2-coredns with updateded content
+  shell: |
+    /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml patch configmap/rke2-coredns-rke2-coredns -n kube-system \
+    --patch-file /etc/rancher/rke2/patch-configmap-rke2-coredns-rke2-coredns.yaml
+  delegate_to: "{{ harvester_node_ip }}"
+  ignore_errors: yes
+  ignore_unreachable: yes
+
+
+- name: copy rke2-coredns-rke2-coredns deployment edit over
+  template:
+    src: roles/harvester/templates/deployment-rke2-coredns-rke2-coredns.yaml.j2
+    dest: /etc/rancher/rke2/deployment-rke2-coredns-rke2-coredns.yaml
+  delegate_to: "{{ harvester_node_ip }}"
+  ignore_errors: yes
+  ignore_unreachable: yes
+
+
+- name: patch deployment rke2-coredns-rke2-coredns with updated content
+  shell: |
+    /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml patch deployment/rke2-coredns-rke2-coredns -n kube-system --patch-file /etc/rancher/rke2/deployment-rke2-coredns-rke2-coredns.yaml
+  delegate_to: "{{ harvester_node_ip }}"
+  ignore_errors: yes
+  ignore_unreachable: yes

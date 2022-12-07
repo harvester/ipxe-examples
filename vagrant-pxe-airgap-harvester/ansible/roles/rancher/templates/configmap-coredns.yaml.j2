@@ -1,0 +1,9 @@
+data:
+  Corefile: ".:53 {\n    errors \n    health  {\n        lameduck 5s\n    }\n    ready
+    \n    kubernetes   cluster.local  cluster.local in-addr.arpa ip6.arpa {\n        pods
+    insecure\n        fallthrough in-addr.arpa ip6.arpa\n        ttl 30\n    }\n    prometheus
+    \  0.0.0.0:9153\n   hosts /etc/coredns/customdomains.db {{ settings.rancher_config.rancher_install_domain }} {\n
+    \   fallthrough\n    }\n forward   . /etc/resolv.conf\n    cache   30\n    loop
+    \n    reload \n    loadbalance \n}"
+  customdomains.db: |
+    {{ settings.rancher_config.node_harvester_network_ip }} {{ settings.rancher_config.rancher_install_domain }}
