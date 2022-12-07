@@ -1,0 +1,184 @@
+---
+##########################################################################
+# NOTE: this is a YAML file so please pay close attention to the leading #
+# spaces as they are significant.                                        #
+##########################################################################
+
+#
+# harvester_iso_url
+# harvester_kernel_url
+# harvester_initrd_url
+#
+# Harvester media to install. The URL scheme can be either 'http', 'https', or
+# 'file'. If the URL scheme is 'file', the given media will be copied from the
+# local file system instead of downloading from a remote location.
+harvester_iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
+harvester_kernel_url: https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64
+harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
+harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-master-rootfs-amd64.squashfs
+
+#
+# harvester_cluster_nodes
+#
+# NOTE: keep in mind that you need at least 3 nodes to make a cluster
+#
+harvester_cluster_nodes: 4
+
+#
+# network_config
+#
+# Harvester network configurations. Make sure the cluster IPs are on the same
+# subnet as the DHCP server. Pre-assign the IPs and MACs for the Harvester
+# nodes.
+#
+# NOTE: Random MAC addresses are generated with the following command:
+# printf '02:00:00:%02X:%02X:%02X\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256))
+# Thanks to https://stackoverflow.com/questions/8484877/mac-address-generator-in-python
+# If any of the generated MAC addresses is in conflict with an existing one in
+# your environment, please use the above command to regenerate and replace
+# the conflicting one.
+
+harvester_network_config:
+  # Run as an airgapped environment that only has internet connectivity through an HTTP proxy.
+  # The HTTP proxy runs on DHCP server using port 3128
+  offline: true
+
+  dhcp_server:
+    ip: 192.168.2.254
+    subnet: 192.168.2.0
+    netmask: 255.255.255.0
+    range: 192.168.2.50 192.168.2.130
+    https: false
+  # Reserve these IPs for the Harvester cluster. Make sure these are outside
+  # the range of DHCP so they don't get served out by the DHCP server
+  # The Harvester cluster IPs are also represented in the 'inventory' file, so editing these
+  # you would also want to make updates / edits to the inventory file
+  vip:
+    ip: 192.168.2.131
+    mode: DHCP
+    mac: 02:00:00:03:3D:61
+  cluster:
+    - ip: 192.168.2.30
+      mac: 02:00:00:0D:62:E2
+      cpu: 8
+      memory: 16354
+      disk_size: 200G
+      vagrant_interface: ens5
+      mgmt_interface: ens6
+    - ip: 192.168.2.31
+      mac: 02:00:00:35:86:92
+      cpu: 8
+      memory: 16354
+      disk_size: 200G
+      vagrant_interface: ens5
+      mgmt_interface: ens6
+    - ip: 192.168.2.32
+      mac: 02:00:00:2F:F2:2A
+      cpu: 8
+      memory: 16354
+      disk_size: 200G
+      vagrant_interface: ens5
+      mgmt_interface: ens6
+    - ip: 192.168.2.33
+      mac: 02:00:00:A7:E6:FF
+      cpu: 8
+      memory: 16354
+      disk_size: 200G
+      vagrant_interface: ens5
+      mgmt_interface: ens6
+
+#
+# harvester_config
+#
+# Harvester system configurations.
+#
+harvester_config:
+  # static token for cluster authentication
+  token: token
+
+  # Public keys to add to authorized_keys of each node.
+  ssh_authorized_keys:
+    # Vagrant default unsecured SSH public key & additionally add somewhere to have public keys available
+    - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key
+    # Additionally add somewhere to have public keys available
+    #- github:your_github_username
+
+  # password to for the `rancher` user to login to the Harvester nodes
+  password: p@ssword
+
+  # NTP servers
+  ntp_servers:
+    - 0.suse.pool.ntp.org
+    - 1.suse.pool.ntp.org
+
+#
+# harvester_dashboard
+#
+# This sets the admin password for the Harvester Dashboard/web-ui upon provisioning
+#
+harvester_dashboard:
+  admin_user: admin
+  # NOTE: admin_password must be greater than or equal to 12 characters in length
+  admin_password: testtesttest
+
+
+#
+# rancher_config
+#
+# Rancher configurations
+# (see Troubleshooting & Known Issues in README)
+rancher_config:
+  # disk size of single instance rancher node, this is split into two partitions at 50/50
+  node_disk_size: 350G
+  run_single_node_rancher: true
+  # to determine to run air_gapped rancher, run_single_node_rancher must be enabled, if set to: false -
+  # it will create a non-airgapped single node rancher instance
+  # harvester offline must be true to fully air-gap both
+  run_single_node_air_gapped_rancher: true
+  # cert-manager version, for the jetstack.io repo
+  cert_manager_version: v1.7.1
+  # url escaped k3s version for grabbing k3s
+  k3s_url_escaped_version: v1.23.6%2Bk3s1
+  # K9s version
+  k9s_version: v0.26.3
+  # IMPORTANT: "TRUE" RANCHER AIRGAPPED ONLY WORKS WITH 2.6.4 -> 2.6.4-rc-*
+  # IMPORTANT: NOTE - it will work with 2.6.5 & 2.6.6, but it "installs" by first installing
+  # 2.6.4, then upgrading to either 2.6.5 or 2.6.6
+  # the rancher version with it's prefix
+  rancher_version: v2.6.11
+  # the rancher version without it's prefix
+  rancher_version_no_prefix: 2.6.11
+  # k9s_version: v0.25.18
+  # mac address of the harvester network card for dhcp on harvester network to work
+  mac_address_harvester_network: 02:29:F9:43:92:95
+  # if this ip changes, update it in the inventories/vagrant file for the rancher_box
+  # we interact with the libvirt vm on this IP via ansible, then shut off eth0 which provides a temp network out
+  # you'll also need to change the ip, listed in the DHCP configuration, since 192.168.0.34 is directly tied to it
+  node_harvester_network_ip: 192.168.2.34
+  cpu: 8
+  memory: 20000
+  # rancher_install_domain, where the domain of the rancher install via helm templating and kubectl -R -f applying is
+  # NOTE: as long as it ends in *.local it should work, hostname resolution on the rancher instance comes from avahi-daemon
+  rancher_install_domain: rancher-vagrant-vm.local
+  # registry_domain is the docker domain that get's set up, it can be anything as long as it ends in a ".local"
+  registry_domain: myregistry.local
+  # bootstrap password
+  bootstrap_password: rancher
+  # replicas desired
+  rancher_replicas: 3
+
+
+#
+# harvester_node_config
+#
+# Harvester node-specific configurations.
+#
+harvester_node_config:
+  # number of CPUs assigned to each node
+  cpu: 8
+
+  # memory size for each node, in MBytes
+  memory: 16354
+
+  # disk size for each node
+  disk_size: 200G

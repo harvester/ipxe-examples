@@ -1,0 +1,12 @@
+---
+- name: install squid
+  apt:
+    update_cache: yes
+    name: squid
+    state: present
+
+- name: configure squid
+  copy:
+    src: default
+    dest: /etc/squid/squid.conf
+  notify: restart squid

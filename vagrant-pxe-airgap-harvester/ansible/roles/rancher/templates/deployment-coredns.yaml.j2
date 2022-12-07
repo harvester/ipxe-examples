@@ -1,0 +1,13 @@
+spec:
+  template:
+    spec:
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: Corefile
+            path: Corefile
+          - key: customdomains.db
+            path: customdomains.db
+          name: coredns
+        name: config-volume

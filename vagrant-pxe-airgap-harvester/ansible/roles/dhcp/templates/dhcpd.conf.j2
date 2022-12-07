@@ -1,0 +1,52 @@
+ddns-update-style none;
+
+# option domain-name "example.org";
+include "/etc/dhcp/ipxe.conf";
+option arch code 93 = unsigned integer 16;
+option user-class code 77 = string;
+
+default-lease-time 600;
+max-lease-time 7200;
+authoritative;
+log-facility local7;
+
+subnet {{ settings['harvester_network_config']['dhcp_server']['subnet'] }} netmask {{ settings['harvester_network_config']['dhcp_server']['netmask'] }} {
+    range {{ settings['harvester_network_config']['dhcp_server']['range'] }};
+    option domain-name-servers {{ settings['harvester_network_config']['dhcp_server']['ip'] }}, 8.8.8.8;
+    {% if settings['harvester_network_config']['offline'] %}
+    option routers {{ settings['harvester_network_config']['dhcp_server']['ip'] }};
+    {% else %}
+    option routers {{ settings['harvester_network_config']['dhcp_server']['subnet'][:-1] }}1;
+    {% endif %}
+    next-server {{ settings['harvester_network_config']['dhcp_server']['ip'] }};
+
+   if exists user-class and option user-class = "iPXE" {
+        filename "http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/${net1/mac}";
+    } elsif option arch != 00:00 {
+        filename "ipxe/ipxe.efi";
+    } else {
+        filename "ipxe/undionly.kpxe";
+    }
+}
+
+{% if settings['rancher_config']['run_single_node_rancher'] %}
+host rancher_node {
+    hardware ethernet {{ settings['rancher_config']['mac_address_harvester_network'] }};
+    fixed-address {{ settings['rancher_config']['node_harvester_network_ip'] }};
+    server-name "rancher-single-node";
+}
+{% endif %}
+
+host harvest_vip {
+    hardware ethernet {{ settings['harvester_network_config']['vip']['mac'] }};
+    fixed-address {{ settings['harvester_network_config']['vip']['ip'] }};
+}
+
+{% for node_number in range(settings['harvester_cluster_nodes']) %}
+host harvest_node_{{ node_number }} {
+    hardware ethernet {{ settings['harvester_network_config']['cluster'][node_number]['mac'] }};
+    fixed-address {{ settings['harvester_network_config']['cluster'][node_number]['ip'] }};
+    server-name "harvester-node-{{ node_number }}";
+}
+
+{% endfor %}

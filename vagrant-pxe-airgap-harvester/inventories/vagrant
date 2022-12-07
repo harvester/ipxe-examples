@@ -1,0 +1,10 @@
+[rancher_box]
+arancherbox ansible_host=192.168.2.34 ansible_private_key=.vagrant/machines/rancher_box/libvirt/private_key
+
+[vagrant]
+arancherbox
+
+[all:vars]
+host_key_checking=False
+ansible_connection=ssh
+ansible_user=vagrant

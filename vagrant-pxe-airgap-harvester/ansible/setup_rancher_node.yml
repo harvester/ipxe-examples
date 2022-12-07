@@ -1,0 +1,8 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: just debug
+      ansible.builtin.debug:
+        msg: "starting rancher provisioning"
+  roles:
+    - role: rancher
