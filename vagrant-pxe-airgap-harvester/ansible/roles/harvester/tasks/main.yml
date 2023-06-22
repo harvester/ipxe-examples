@@ -50,25 +50,25 @@
   with_sequence: "start=1 end={{ end_sequence }}"
 
 - name: download Harvester kernel
-  include: _download_media.yml
+  include_tasks: _download_media.yml
   vars:
     harvester_media_url: "{{ settings['harvester_kernel_url'] }}"
     media_filename: "harvester-vmlinuz-amd64"
 
 - name: download Harvester ramdisk
-  include: _download_media.yml
+  include_tasks: _download_media.yml
   vars:
     harvester_media_url: "{{ settings['harvester_ramdisk_url'] }}"
     media_filename: "harvester-initrd-amd64"
 
 - name: download Harvester ISO
-  include: _download_media.yml
+  include_tasks: _download_media.yml
   vars:
     harvester_media_url: "{{ settings['harvester_iso_url'] }}"
     media_filename: "harvester-amd64.iso"
 
 - name: download Harvester Root FS
-  include: _download_media.yml
+  include_tasks: _download_media.yml
   vars:
     harvester_media_url: "{{ settings['harvester_rootfs_url'] }}"
     media_filename: "harvester-rootfs-amd64.squashfs"
