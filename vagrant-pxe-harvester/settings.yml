@@ -60,28 +60,28 @@ harvester_network_config:
       mac: 02:00:00:0D:62:E2
       cpu: 8
       memory: 16384
-      disk_size: 250G
+      disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
     - ip: 192.168.0.31
       mac: 02:00:00:35:86:92
       cpu: 8
       memory: 8192
-      disk_size: 250G
+      disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
     - ip: 192.168.0.32
       mac: 02:00:00:2F:F2:2A
       cpu: 8
       memory: 16384
-      disk_size: 250G
+      disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
     - ip: 192.168.0.33
       mac: 02:00:00:A7:E6:FF
       cpu: 8
       memory: 8192
-      disk_size: 250G
+      disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
 
@@ -120,4 +120,4 @@ harvester_node_config:
   memory: 8192
 
   # disk size for each node
-  disk_size: 250G
+  disk_size: 500G
