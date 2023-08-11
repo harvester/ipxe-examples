@@ -593,6 +593,22 @@
         register: copy_rancher_registries_edit_result
         when: settings.rancher_config.run_single_node_air_gapped_rancher | bool
 
+      - name: ensure k3s server directory exists
+        ansible.builtin.file:
+          path: /var/lib/rancher/k3s/server
+          state: directory
+
+      - name: ensure k3s server manifests directory exists
+        ansible.builtin.file:
+          path: /var/lib/rancher/k3s/server/manifests
+          state: directory
+
+      - name: copy k3s coredns yaml over
+        ansible.builtin.template:
+          src: "coredns.yaml.j2"
+          dest: /var/lib/rancher/k3s/server/manifests/coredns.yaml
+          force: yes
+
       - name: append registries.yaml with edits
         ansible.builtin.shell: |
           cat /etc/rancher/k3s/registries-yaml-edit.yaml >> /etc/rancher/k3s/registries.yaml

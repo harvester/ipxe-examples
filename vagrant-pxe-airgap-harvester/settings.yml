@@ -138,7 +138,7 @@ rancher_config:
   # cert-manager version, for the jetstack.io repo
   cert_manager_version: v1.7.1
   # url escaped k3s version for grabbing k3s
-  k3s_url_escaped_version: v1.23.6%2Bk3s1
+  k3s_url_escaped_version: v1.24.16%2Bk3s1
   # K9s version
   k9s_version: v0.26.3
   # IMPORTANT: "TRUE" RANCHER AIRGAPPED ONLY WORKS WITH 2.6.4 -> 2.6.4-rc-*
