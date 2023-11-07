@@ -27,15 +27,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # so increase the timeout to 120 seconds
   config.vm.graceful_halt_timeout = 120
   
+  # PXE Server
   config.vm.define :pxe_server do |pxe_server|
-
     pxe_server.vm.box = 'generic/debian10'
     pxe_server.vm.hostname = 'pxe-server'
     pxe_server.vm.network 'private_network',
       ip: @settings['harvester_network_config']['dhcp_server']['ip'],
       libvirt__network_name: 'harvester',
-      # don't enable DHCP as this node will have it's now DHCP server for iPXE
-      # boot
       libvirt__dhcp_enabled: false
 
     pxe_server.vm.provider :libvirt do |libvirt|
@@ -44,7 +42,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       libvirt.cpus = '1'
     end
 
-    # Use ansible to install server
     pxe_server.vm.provision :ansible do |ansible|
       ansible.playbook = 'ansible/setup_pxe_server.yml'
       ansible.extra_vars = {
@@ -53,6 +50,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
+  # Harvester
   cluster_node_index = @settings['harvester_cluster_nodes'] - 1
   (0..cluster_node_index).each do |node_number|
     vm_name = "harvester-node-#{node_number}"
@@ -80,4 +78,29 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
     end
   end
+
+  # Rancher
+  # https://ranchermanager.docs.rancher.com/pages-for-subheaders/installation-requirements#docker
+  config.vm.define :rancher do |rancher|
+    rancher.vm.box = 'generic/debian10'
+    rancher.vm.hostname = 'rancher'
+    rancher.vm.network 'private_network',
+      ip: @settings['harvester_network_config']['rancher']['ip'],
+      libvirt__network_name: 'harvester',
+      libvirt__dhcp_enabled: false
+
+      rancher.vm.provider :libvirt do |libvirt|
+      libvirt.cpu_mode = 'host-passthrough'
+      libvirt.memory = '4096'
+      libvirt.cpus = '1'
+    end
+
+    rancher.vm.provision :ansible do |ansible|
+      ansible.playbook = 'ansible/setup_rancher.yml'
+      ansible.extra_vars = {
+        settings: @settings
+      }
+    end
+  end
+
 end

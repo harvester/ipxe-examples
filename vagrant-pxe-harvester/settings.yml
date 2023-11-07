@@ -49,6 +49,7 @@ harvester_network_config:
     netmask: 255.255.255.0
     range: 192.168.0.50 192.168.0.130
     https: false
+
   # Reserve these IPs for the Harvester cluster. Make sure these are outside
   # the range of DHCP so they don't get served out by the DHCP server
   vip:
@@ -66,7 +67,7 @@ harvester_network_config:
     - ip: 192.168.0.31
       mac: 02:00:00:35:86:92
       cpu: 8
-      memory: 8192
+      memory: 16384
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
@@ -84,6 +85,12 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
+
+  rancher:
+    enabled: false
+    ip: 192.168.0.141
+    password: admin
+    version: v2.7.6
 
 #
 # harvester_config

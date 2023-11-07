@@ -5,23 +5,13 @@
   gather_facts: false
 
   tasks:
-  - name: create "Installing PXE Server" message
-    shell: >
-      figlet "Installing PXE Server" 2>/dev/null || echo "Installing PXE Server"
-    register: figlet_result
-
-  - name: print Installing PXE Server
-    debug:
-      msg: "{{ figlet_result.stdout }}"
+  - debug:
+      msg: Installation Started
 
   - name: install PXE server
     shell: >
       vagrant up pxe_server
     register: pxe_server_installation_result
-
-  - name: display PXE server installation result
-    debug:
-      msg: "{{ pxe_server_installation_result.stdout }}"
 
   - name: get the IP address of pxe_server
     shell: |
@@ -50,12 +40,23 @@
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
 
-  - name: create "Installation Completed" message
+  - name: install Rancher
     shell: >
-      figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
-    register: figlet_result
+      vagrant up rancher
+    register: rancher_installation_result
+    when: harvester_network_config.rancher.enabled
 
-  - name: print "Installation Completed"
-    debug:
-      msg: "{{ figlet_result.stdout }}"
+  - name: wait for Rancher {{ harvester_network_config.rancher.ip }} to get ready
+    uri:
+      url: "https://{{ harvester_network_config.rancher.ip }}"
+      validate_certs: no
+      status_code: 200
+    register: http_resp
+    until: http_resp.status == 200
+    retries: 10
+    delay: 30
+    when: harvester_network_config.rancher.enabled
+
+  - debug:
+      msg: Installation Completed
 
