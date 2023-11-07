@@ -1,0 +1,54 @@
+---
+# Reference:
+# https://ranchermanager.docs.rancher.com/pages-for-subheaders/rancher-on-a-single-node-with-docker
+
+- name: Setup Rancher
+  hosts: all
+  become: yes
+  vars:
+    docker_deb_url: https://download.docker.com/linux/debian
+  
+  tasks:
+    - name: apt | update and setup
+      ansible.builtin.apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - gnupg2
+          - software-properties-common
+        update_cache: yes
+
+    - name: apt | add docker gpg key
+      ansible.builtin.apt_key:
+        url: "{{ docker_deb_url }}/gpg"
+
+    - name: apt | add docker repo
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] {{ docker_deb_url }} {{ ansible_distribution_release }} stable"
+
+    - name: docker | setup
+      ansible.builtin.apt:
+        name: docker-ce 
+        update_cache: yes
+
+    - name: docker | add vagrant to docker group
+      ansible.builtin.user:
+        name: vagrant
+        groups: docker
+        append: yes
+      
+    - name: docker | check
+      ansible.builtin.command: docker run --rm hello-world
+      register: cmd_result
+      failed_when: "'Hello from Docker' not in cmd_result.stdout"
+
+    - name: setup via single docker node installation
+      ansible.builtin.command: docker run --name rancher \
+        --publish 80:80 \
+        --publish 443:443 \
+        --env CATTLE_REQUEST_CACHE_DISABLED=true \
+        --env CATTLE_BOOTSTRAP_PASSWORD={{ settings.harvester_network_config.rancher.password }} \
+        --restart unless-stopped \
+        --detach \
+        --privileged \
+        rancher/rancher:{{ settings.harvester_network_config.rancher.version }}
