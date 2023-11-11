@@ -89,7 +89,7 @@ harvester_network_config:
   rancher:
     enabled: false
     ip: 192.168.0.141
-    password: admin
+    password: rancher
     version: v2.7.6
 
 #

@@ -1,0 +1,38 @@
+---
+# Reference:
+# https://ranchermanager.docs.rancher.com/pages-for-subheaders/rancher-on-a-single-node-with-docker
+
+- name: Reinstall Rancher
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    rancher_version: "{{ harvester_network_config.rancher.version }}"
+    rancher_ip: "{{ harvester_network_config.rancher.ip }}"
+  
+  tasks:
+    - name: Check rancher is enabled
+      assert:
+        that: harvester_network_config.rancher.enabled
+
+    - name: Check network
+      shell: virsh -c qemu:///system net-info harvester
+      register: shell_result
+      failed_when: shell_result.rc != 0
+
+    - name: remove Rancher
+      shell: vagrant destroy -f rancher && sleep 10
+
+    - name: install Rancher {{ rancher_version }}
+      shell: vagrant up rancher
+
+    - name: wait for Rancher {{ rancher_ip }} to get ready
+      uri:
+        url: "https://{{ rancher_ip }}"
+        validate_certs: no
+        status_code: 200
+        force: true
+      register: http_resp
+      until: http_resp.status == 200
+      retries: 10
+      delay: 30
