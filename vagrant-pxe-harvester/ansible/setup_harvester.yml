@@ -40,14 +40,14 @@
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
 
-  - name: install Rancher {{ harvester_network_config.rancher.version }}
+  - name: install Rancher {{ rancher_config.version }}
     shell: >
       vagrant up rancher
-    when: harvester_network_config.rancher.enabled
+    when: rancher_config.enabled
 
-  - name: wait for Rancher {{ harvester_network_config.rancher.ip }} to get ready
+  - name: wait for Rancher {{ rancher_config.ip }} to get ready
     uri:
-      url: "https://{{ harvester_network_config.rancher.ip }}"
+      url: "https://{{ rancher_config.ip }}"
       validate_certs: no
       status_code: 200
       force: true
@@ -55,7 +55,7 @@
     until: http_resp.status == 200
     retries: 10
     delay: 30
-    when: harvester_network_config.rancher.enabled
+    when: rancher_config.enabled
 
   - debug:
       msg: Installation Completed

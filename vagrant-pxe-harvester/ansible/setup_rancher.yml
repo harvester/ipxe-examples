@@ -47,8 +47,8 @@
         --publish 80:80 \
         --publish 443:443 \
         --env CATTLE_REQUEST_CACHE_DISABLED=true \
-        --env CATTLE_BOOTSTRAP_PASSWORD={{ settings.harvester_network_config.rancher.password }} \
+        --env CATTLE_BOOTSTRAP_PASSWORD={{ settings.rancher_config.password }} \
         --restart unless-stopped \
         --detach \
         --privileged \
-        rancher/rancher:{{ settings.harvester_network_config.rancher.version }}
+        rancher/rancher:{{ settings.rancher_config.version }}

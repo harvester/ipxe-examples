@@ -7,13 +7,13 @@
   connection: local
   gather_facts: false
   vars:
-    rancher_version: "{{ harvester_network_config.rancher.version }}"
-    rancher_ip: "{{ harvester_network_config.rancher.ip }}"
+    rancher_version: "{{ rancher_config.version }}"
+    rancher_ip: "{{ rancher_config.ip }}"
   
   tasks:
     - name: Check rancher is enabled
       assert:
-        that: harvester_network_config.rancher.enabled
+        that: rancher_config.enabled
 
     - name: Check network
       shell: virsh -c qemu:///system net-info harvester
