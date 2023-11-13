@@ -34,6 +34,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     pxe_server.vm.network 'private_network',
       ip: @settings['harvester_network_config']['dhcp_server']['ip'],
       libvirt__network_name: 'harvester',
+      # don't enable DHCP as this node will have it's now DHCP server for iPXE
       libvirt__dhcp_enabled: false
 
     pxe_server.vm.provider :libvirt do |libvirt|
@@ -85,7 +86,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     rancher.vm.box = 'generic/debian10'
     rancher.vm.hostname = 'rancher'
     rancher.vm.network 'private_network',
-      ip: @settings['harvester_network_config']['rancher']['ip'],
+      ip: @settings['rancher_config']['ip'],
       libvirt__network_name: 'harvester',
       libvirt__dhcp_enabled: false
 

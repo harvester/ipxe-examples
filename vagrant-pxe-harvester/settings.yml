@@ -86,12 +86,6 @@ harvester_network_config:
       vagrant_interface: ens5
       mgmt_interface: ens6
 
-  rancher:
-    enabled: false
-    ip: 192.168.0.141
-    password: rancher
-    version: v2.7.6
-
 #
 # harvester_config
 #
@@ -128,3 +122,16 @@ harvester_node_config:
 
   # disk size for each node
   disk_size: 500G
+
+#
+# rancher_config
+#
+# Rancher on an independent node.
+# Make sure the IP is out of harvester_network_config.dhcp_server.range
+# and does not conflict with other static IPs (e.g. Harvester).
+#
+rancher_config:
+  enabled: false
+  ip: 192.168.0.141
+  password: rancher
+  version: v2.7.6
