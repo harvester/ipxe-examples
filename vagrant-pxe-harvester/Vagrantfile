@@ -81,7 +81,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # Rancher
-  # https://ranchermanager.docs.rancher.com/pages-for-subheaders/installation-requirements#docker
   config.vm.define :rancher do |rancher|
     rancher.vm.box = 'generic/debian10'
     rancher.vm.hostname = 'rancher'
@@ -92,8 +91,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       rancher.vm.provider :libvirt do |libvirt|
       libvirt.cpu_mode = 'host-passthrough'
-      libvirt.memory = '4096'
-      libvirt.cpus = '1'
+      libvirt.cpus = @settings['rancher_config']['cpu']
+      libvirt.memory = @settings['rancher_config']['memory']
     end
 
     rancher.vm.provision :ansible do |ansible|

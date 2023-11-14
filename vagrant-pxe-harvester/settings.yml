@@ -126,12 +126,18 @@ harvester_node_config:
 #
 # rancher_config
 #
-# Rancher on an independent node.
-# Make sure the IP is out of harvester_network_config.dhcp_server.range
-# and does not conflict with other static IPs (e.g. Harvester).
+# Rancher setup on an independent node.
 #
 rancher_config:
   enabled: false
+  version: v2.7.6
+
+  # IP should be out of harvester_network_config.dhcp_server.range and does not
+  # conflict with other static IPs (e.g. Harvester).
   ip: 192.168.0.141
   password: rancher
-  version: v2.7.6
+  
+  # Refer resource requirements to
+  # https://ranchermanager.docs.rancher.com/pages-for-subheaders/installation-requirements
+  cpu: 1
+  memory: 4096
