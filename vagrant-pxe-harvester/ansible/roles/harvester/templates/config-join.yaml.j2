@@ -6,6 +6,10 @@ token: {{ settings['harvester_config']['token'] }}
 os:
   hostname: harvester-node-{{ node_number }}
   ssh_authorized_keys:
+  dns_nameservers:
+{% for dns_server in settings['harvester_network_config']['dns_servers'] %}
+  - {{ dns_server }}
+{% endfor %}
 {% for ssh_key in settings['harvester_config']['ssh_authorized_keys'] %}
     - {{ ssh_key }}
 {% endfor %}

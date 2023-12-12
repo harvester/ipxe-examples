@@ -49,7 +49,12 @@ harvester_network_config:
     netmask: 255.255.255.0
     range: 192.168.0.50 192.168.0.130
     https: false
-
+    #  Change this to a custom DNS server if you need one for your DHCP scope
+    dns_server: 4.4.2.2
+  dns_servers:
+  # This is a list of DNS servers that will be included in your Harvester OS config
+    - 192.168.0.254
+    - 8.8.8.8
   # Reserve these IPs for the Harvester cluster. Make sure these are outside
   # the range of DHCP so they don't get served out by the DHCP server
   vip:
