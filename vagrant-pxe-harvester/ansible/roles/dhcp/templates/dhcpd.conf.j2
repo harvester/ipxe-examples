@@ -12,7 +12,7 @@ log-facility local7;
 
 subnet {{ settings['harvester_network_config']['dhcp_server']['subnet'] }} netmask {{ settings['harvester_network_config']['dhcp_server']['netmask'] }} {
     range {{ settings['harvester_network_config']['dhcp_server']['range'] }};
-    option domain-name-servers {{ settings['harvester_network_config']['dhcp_server']['ip'] }}, 8.8.8.8;
+    option domain-name-servers {{ settings['harvester_network_config']['dhcp_server']['dns_server'] }}, {{ settings['harvester_network_config']['dhcp_server']['ip'] }}, 8.8.8.8;
     {% if settings['harvester_network_config']['offline'] %}
     option routers {{ settings['harvester_network_config']['dhcp_server']['ip'] }};
     {% else %}
