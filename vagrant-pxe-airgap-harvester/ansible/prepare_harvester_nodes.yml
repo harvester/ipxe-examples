@@ -19,7 +19,7 @@
 
 
   - name: make Harvester nodes adjusted for rancher
-    include: adjust_harvester_nodes.yml
+    include_tasks: adjust_harvester_nodes.yml
     vars:
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}

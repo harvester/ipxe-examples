@@ -55,7 +55,7 @@
     ignore_errors: yes
 
   - name: boot Harvester nodes
-    include: boot_harvester_node.yml
+    include_tasks: boot_harvester_node.yml
     vars:
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}

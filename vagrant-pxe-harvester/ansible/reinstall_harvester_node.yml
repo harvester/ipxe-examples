@@ -15,7 +15,7 @@
       msg: "{{ figlet_result.stdout }}"
 
   - name: boot Harvester nodes
-    include: boot_harvester_node.yml
+    include_tasks: boot_harvester_node.yml
 
   - name: create "Installation Completed" message
     shell: >
