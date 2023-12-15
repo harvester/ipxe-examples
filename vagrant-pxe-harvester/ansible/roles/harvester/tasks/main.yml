@@ -15,7 +15,7 @@
 # make sure end sequence is at least 1 even if we have only one Harvester node
 - name: set node sequence fact
   set_fact:
-    end_sequence: "{{ settings['harvester_cluster_nodes'] - 1 if settings['harvester_cluster_nodes'] > 1 else 1 }}"
+    end_sequence: "{{ settings['harvester_network_config']['cluster'] | length - 1}}"
 
 - name: copy config-join.yaml
   template:
