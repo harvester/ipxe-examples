@@ -20,6 +20,9 @@ os:
 {% endfor %}
 install:
   mode: join
+{% if settings['harvester_network_config']['cluster'][node_number |int]['etcd_only'] %}
+  role: etcd
+{% endif %}
   management_interface:
     interfaces:
     - name: {{ settings['harvester_network_config']['cluster'][node_number | int]['mgmt_interface'] }}  # The management interface name

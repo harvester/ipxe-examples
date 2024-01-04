@@ -69,6 +69,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
+      etcd_only: false
     - ip: 192.168.0.31
       mac: 02:00:00:35:86:92
       cpu: 8
@@ -76,6 +77,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
+      etcd_only: false
     - ip: 192.168.0.32
       mac: 02:00:00:2F:F2:2A
       cpu: 8
@@ -83,6 +85,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
+      etcd_only: false
     - ip: 192.168.0.33
       mac: 02:00:00:A7:E6:FF
       cpu: 8
@@ -90,6 +93,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
+      etcd_only: false
 
 #
 # harvester_config
