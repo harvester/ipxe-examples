@@ -19,12 +19,13 @@ fi
 
 NODE_NUMBER=$1
 NODE_NAME="harvester-node-${NODE_NUMBER}"
+TOTAL_NODES_STR=`grep harvester_cluster_nodes: settings.yml`
 
 # check to make sure the node has not been created
-NOT_CREATED=`vagrant status ${NODE_NAME} | grep "^${NODE_NAME}" | grep "not created" || true`
+NOT_CREATED=`vagrant status | grep "^${NODE_NAME}" | grep "not created" || true`
 
 if [ "${NOT_CREATED}" == "" ] ; then
-  echo "Harvester node ${NODE_NAME} already created."
+  echo "${NODE_NAME} already created or exceeds defined size (${TOTAL_NODES_STR})."
   exit 1
 fi
 
