@@ -81,25 +81,27 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # Rancher
-  config.vm.define :rancher do |rancher|
-    rancher.vm.box = 'generic/debian10'
-    rancher.vm.hostname = 'rancher'
-    rancher.vm.network 'private_network',
-      ip: @settings['rancher_config']['ip'],
-      libvirt__network_name: 'harvester',
-      libvirt__dhcp_enabled: false
+  if @settings['rancher_config']['enabled']
+    config.vm.define :rancher do |rancher|
+      rancher.vm.box = 'generic/debian10'
+      rancher.vm.hostname = 'rancher'
+      rancher.vm.network 'private_network',
+        ip: @settings['rancher_config']['ip'],
+        libvirt__network_name: 'harvester',
+        libvirt__dhcp_enabled: false
 
-      rancher.vm.provider :libvirt do |libvirt|
-      libvirt.cpu_mode = 'host-passthrough'
-      libvirt.cpus = @settings['rancher_config']['cpu']
-      libvirt.memory = @settings['rancher_config']['memory']
-    end
+        rancher.vm.provider :libvirt do |libvirt|
+        libvirt.cpu_mode = 'host-passthrough'
+        libvirt.cpus = @settings['rancher_config']['cpu']
+        libvirt.memory = @settings['rancher_config']['memory']
+      end
 
-    rancher.vm.provision :ansible do |ansible|
-      ansible.playbook = 'ansible/setup_rancher.yml'
-      ansible.extra_vars = {
-        settings: @settings
-      }
+      rancher.vm.provision :ansible do |ansible|
+        ansible.playbook = 'ansible/setup_rancher.yml'
+        ansible.extra_vars = {
+          settings: @settings
+        }
+      end
     end
   end
 
