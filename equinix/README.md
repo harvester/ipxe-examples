@@ -16,7 +16,7 @@ dhcp
 iflinkwait -t 5000 && echo Detected link on ${ifname} 
 set version master # change to a specific version for production installation
 set base https://releases.rancher.com/harvester/${version}  # ipxe on Equinix currently does not support `https://release.rancher.com`, you can build your own web server or use other methods to download related artifacts.
-kernel ${base}/harvester-${version}-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:${base}/harvester-${version}-rootfs-amd64.squashfs harvester.install.networks.harvester-mgmt.interfaces="hwAddr:${net0/mac}" harvester.install.networks.harvester-mgmt.method=dhcp harvester.install.networks.harvester-mgmt.bond_options.mode=balance-tlb harvester.install.networks.harvester-mgmt.bond_options.miimon=100 console=ttyS1,115200 harvester.install.automatic=true boot_cmd="echo include_ping_test=yes >> /etc/conf.d/net-online" harvester.install.config_url=https://metadata.platformequinix.com/userdata
+kernel ${base}/harvester-${version}-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:${base}/harvester-${version}-rootfs-amd64.squashfs harvester.install.networks.harvester-mgmt.interfaces="hwAddr:${net0/mac}" harvester.install.networks.harvester-mgmt.method=dhcp harvester.install.networks.harvester-mgmt.bond_options.mode=balance-tlb harvester.install.networks.harvester-mgmt.bond_options.miimon=100 console=ttyS1,115200 harvester.install.automatic=true harvester.install.skipchecks=true boot_cmd="echo include_ping_test=yes >> /etc/conf.d/net-online" harvester.install.config_url=https://metadata.platformequinix.com/userdata
 initrd ${base}/harvester-${version}-initrd-amd64
 boot
 ```
@@ -26,6 +26,8 @@ The URLs after `kernel` and `initrd` tell the iPXE program to boot kernel and in
 The `console=ttyS1,115200` parameter tells the installer ttyS1 is the primary console, since it's the only console that end users can use on Equinix Metal (the [SOS console](https://metal.equinix.com/developers/docs/resilience-recovery/serial-over-ssh/)).
 
 The `harvester.install.automatic=true` parameter tells the installer we want to do the automatic installation.
+
+The `harvester.install.skipchecks=true` parameter tells the installer to skip preflight hardware checks.
 
 The `harvester.install.config_url=https://metadata.platformequinix.com/userdata` parameter tells the installer we want to fetch the Harvester configuration from this URL, which contains the userdata specified by the user when creating nodes. The harvester configuration contains sensitive credentials. We can prevent those credentials from leaking by using [userdata](https://metal.equinix.com/developers/docs/servers/user-data/) that can only be seen by provisioning nodes.
 

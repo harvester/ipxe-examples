@@ -4,6 +4,6 @@ iflinkwait -t 5000 && echo Detected link on ${ifname}
 set version v1.1.2
 set base https://github.com/harvester/harvester/releases/download/${version}
 set harvesterreleasebase https://releases.rancher.com/harvester/${version}
-kernel ${base}/harvester-${version}-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:${harvesterreleasebase}/harvester-${version}-rootfs-amd64.squashfs harvester.install.management_interface.interfaces="hwAddr:${net0/mac}" harvester.install.management_interface.method=dhcp harvester.install.management_interface.bond_options.mode=balance-tlb harvester.install.management_interface.bond_options.miimon=100 console=ttyS1,115200 harvester.install.automatic=true boot_cmd="echo include_ping_test=yes >> /etc/conf.d/net-online" harvester.install.config_url=https://metadata.platformequinix.com/userdata
+kernel ${base}/harvester-${version}-vmlinuz-amd64 ip=dhcp net.ifnames=1 rd.cos.disable rd.noverifyssl root=live:${harvesterreleasebase}/harvester-${version}-rootfs-amd64.squashfs harvester.install.management_interface.interfaces="hwAddr:${net0/mac}" harvester.install.management_interface.method=dhcp harvester.install.management_interface.bond_options.mode=balance-tlb harvester.install.management_interface.bond_options.miimon=100 console=ttyS1,115200 harvester.install.automatic=true harvester.install.skipchecks=true boot_cmd="echo include_ping_test=yes >> /etc/conf.d/net-online" harvester.install.config_url=https://metadata.platformequinix.com/userdata
 initrd ${base}/harvester-${version}-initrd-amd64
 boot
