@@ -51,10 +51,12 @@ harvester_network_config:
     https: false
     #  Change this to a custom DNS server if you need one for your DHCP scope
     dns_server: 4.4.2.2
+
   dns_servers:
   # This is a list of DNS servers that will be included in your Harvester OS config
     - 192.168.0.254
     - 8.8.8.8
+
   # Reserve these IPs for the Harvester cluster. Make sure these are outside
   # the range of DHCP so they don't get served out by the DHCP server
   vip:
@@ -62,6 +64,7 @@ harvester_network_config:
     mode: DHCP
     mac: 02:00:00:03:3D:61
   cluster:
+    # role: default, management, witness or worker
     - ip: 192.168.0.30
       mac: 02:00:00:0D:62:E2
       cpu: 8
@@ -69,7 +72,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
-      etcd_only: false
+      role: default
     - ip: 192.168.0.31
       mac: 02:00:00:35:86:92
       cpu: 8
@@ -77,7 +80,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
-      etcd_only: false
+      role: default
     - ip: 192.168.0.32
       mac: 02:00:00:2F:F2:2A
       cpu: 8
@@ -85,7 +88,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
-      etcd_only: false
+      role: default
     - ip: 192.168.0.33
       mac: 02:00:00:A7:E6:FF
       cpu: 8
@@ -93,7 +96,7 @@ harvester_network_config:
       disk_size: 500G
       vagrant_interface: ens5
       mgmt_interface: ens6
-      etcd_only: false
+      role: default
 
 #
 # harvester_config
@@ -145,7 +148,7 @@ rancher_config:
   # conflict with other static IPs (e.g. Harvester).
   ip: 192.168.0.141
   password: rancher
-  
+
   # Refer resource requirements to
   # https://ranchermanager.docs.rancher.com/pages-for-subheaders/installation-requirements
   cpu: 1

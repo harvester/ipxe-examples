@@ -12,12 +12,19 @@
   set_fact:
     harvester_node_ip: "{{ harvester_network_config['cluster'][node_number | int]['ip'] }}"
 
+- name: set Harvester Node Role fact
+  set_fact:
+    harvester_node_role: "{{ harvester_network_config['cluster'][node_number | int]['role'] }}"
+
 - name: boot Harvester Node {{ node_number }}
   shell: >
     vagrant up harvester-node-{{ node_number }}
   register: harvester_node_boot_result
 
-- name: wait for Harvester Node {{ harvester_node_ip }} to get ready
+# Check node get ready
+# non-witness
+- name: wait for {{ harvester_node_role }} node {{ harvester_node_ip }} to get ready
+  when: harvester_node_role != "witness"
   uri:
     url: "https://{{ harvester_node_ip }}"
     validate_certs: no
@@ -25,5 +32,16 @@
     timeout: 120
   register: auth_modes_lookup_result
   until: auth_modes_lookup_result.status == 200
+  retries: 20
+  delay: 120
+# witness
+- name: wait for witness node {{ harvester_node_ip }} to get ready
+  when: harvester_node_role == "witness"
+  wait_for:
+    host: "{{ harvester_node_ip }}"
+    port: 9091
+    timeout: 5
+  register: calico_port_result
+  until: calico_port_result is succeeded
   retries: 20
   delay: 120
