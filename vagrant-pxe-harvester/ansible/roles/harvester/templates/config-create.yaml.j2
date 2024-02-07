@@ -19,6 +19,7 @@ os:
 {% endfor %}
 install:
   mode: create
+  role: {{ settings['harvester_network_config']['cluster'][0]['role'] }}
   management_interface:
     interfaces:
     - name: {{ settings['harvester_network_config']['cluster'][0]['mgmt_interface'] }}  # The management interface name
