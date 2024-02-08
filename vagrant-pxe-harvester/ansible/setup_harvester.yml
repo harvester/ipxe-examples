@@ -35,7 +35,7 @@
     delay: 30
 
   - name: boot Harvester nodes
-    include: boot_harvester_node.yml
+    ansible.builtin.include_tasks: boot_harvester_node.yml
     vars:
       node_number: "{{ item }}"
     with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
