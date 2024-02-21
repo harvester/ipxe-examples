@@ -15,6 +15,9 @@ os:
 {% endfor %}
 install:
   mode: create
+{% if settings['harvester_network_config']['cluster'][0]['role'] != 'default' %}
+  role: {{ settings['harvester_network_config']['cluster'][0]['role'] }}
+{% endif %}
   networks:
     harvester-mgmt:
       interfaces:
