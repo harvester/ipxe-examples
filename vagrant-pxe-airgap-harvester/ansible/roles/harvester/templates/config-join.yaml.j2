@@ -15,8 +15,8 @@ os:
 {% endfor %}
 install:
   mode: join
-{% if settings['harvester_network_config']['cluster'][node_number |int]['etcd_only'] %}
-  role: etcd
+{% if settings['harvester_network_config']['cluster'][node_number |int]['role'] != 'default' %}
+  role: {{ settings['harvester_network_config']['cluster'][node_number |int]['role'] }}
 {% endif %}
   networks:
     harvester-mgmt:
