@@ -63,6 +63,7 @@ harvester_network_config:
     ip: 192.168.0.131
     mode: DHCP
     mac: 02:00:00:03:3D:61
+  sftp: true
   cluster:
     # role: default, management, witness or worker
     - ip: 192.168.0.30
