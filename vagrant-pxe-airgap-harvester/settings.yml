@@ -57,6 +57,7 @@ harvester_network_config:
     ip: 192.168.2.131
     mode: DHCP
     mac: 02:00:00:03:3D:61
+  sftp: true
   cluster:
     - ip: 192.168.2.30
       mac: 02:00:00:0D:62:E2

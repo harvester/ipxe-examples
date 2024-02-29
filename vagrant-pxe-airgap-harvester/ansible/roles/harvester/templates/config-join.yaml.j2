@@ -13,6 +13,10 @@ os:
 {% for ntp_server in settings['harvester_config']['ntp_servers'] %}
     - {{ ntp_server }}
 {% endfor %}
+{% if settings['harvester_network_config']['sftp'] %}
+  sshd:
+    sftp: {{ settings['harvester_network_config']['sftp'] }}
+{% endif %}
 install:
   mode: join
 {% if settings['harvester_network_config']['cluster'][node_number |int]['role'] != 'default' %}
