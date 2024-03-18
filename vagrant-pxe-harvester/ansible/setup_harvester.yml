@@ -45,9 +45,9 @@
       vagrant up rancher
     when: rancher_config.enabled
 
-  - name: wait for Rancher {{ rancher_config.ip }} to get ready
+  - name: wait for Rancher {{ rancher_config.hostname }} to get ready
     uri:
-      url: "https://{{ rancher_config.ip }}"
+      url: "https://{{ rancher_config.hostname }}"
       validate_certs: no
       status_code: 200
       force: true

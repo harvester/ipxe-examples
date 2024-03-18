@@ -1,54 +1,48 @@
 ---
 # Reference:
-# https://ranchermanager.docs.rancher.com/pages-for-subheaders/rancher-on-a-single-node-with-docker
+# https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/install-upgrade-on-a-kubernetes-cluster
 
 - name: Setup Rancher
   hosts: all
   become: yes
-  vars:
-    docker_deb_url: https://download.docker.com/linux/debian
+  any_errors_fatal: true
   
   tasks:
-    - name: apt | update and setup
-      ansible.builtin.apt:
-        pkg:
-          - apt-transport-https
-          - ca-certificates
-          - gnupg2
-          - software-properties-common
-        update_cache: yes
+    - name: setup k3s 
+      shell: curl -sfL https://get.k3s.io | sh -
+      args:
+        warn: false
+      environment:
+        INSTALL_K3S_VERSION: "{{ settings.rancher_config.kubernetes.version }}"
 
-    - name: apt | add docker gpg key
-      ansible.builtin.apt_key:
-        url: "{{ docker_deb_url }}/gpg"
+    - name: setup helm
+      shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        warn: false
 
-    - name: apt | add docker repo
-      ansible.builtin.apt_repository:
-        repo: "deb [arch=amd64] {{ docker_deb_url }} {{ ansible_distribution_release }} stable"
+    - name: update repo
+      shell: |
+        helm repo add jetstack https://charts.jetstack.io
+        helm repo add rancher {{ settings.rancher_config.repo }}
+        helm repo update
 
-    - name: docker | setup
-      ansible.builtin.apt:
-        name: docker-ce 
-        update_cache: yes
+    - name: setup cert-manager
+      shell: >
+        helm install cert-manager jetstack/cert-manager
+        --namespace cert-manager
+        --create-namespace
+        --set installCRDs=true
+      environment:
+        KUBECONFIG: "{{ settings.rancher_config.kubernetes.config }}"
 
-    - name: docker | add vagrant to docker group
-      ansible.builtin.user:
-        name: vagrant
-        groups: docker
-        append: yes
-      
-    - name: docker | check
-      ansible.builtin.command: docker run --rm hello-world
-      register: cmd_result
-      failed_when: "'Hello from Docker' not in cmd_result.stdout"
-
-    - name: setup via single docker node installation
-      ansible.builtin.command: docker run --name rancher \
-        --publish 80:80 \
-        --publish 443:443 \
-        --env CATTLE_REQUEST_CACHE_DISABLED=true \
-        --env CATTLE_BOOTSTRAP_PASSWORD={{ settings.rancher_config.password }} \
-        --restart unless-stopped \
-        --detach \
-        --privileged \
-        rancher/rancher:{{ settings.rancher_config.version }}
+    - name: setup rancher
+      shell: >
+        helm install rancher rancher/rancher
+        --namespace cattle-system
+        --create-namespace
+        --version {{ settings.rancher_config.version }}
+        --set-string ingress.extraAnnotations.'nginx\.ingress\.kubernetes\.io/http2-push-preload'=false
+        --set bootstrapPassword={{ settings.rancher_config.password }}
+        --set hostname={{ settings.rancher_config.hostname }}
+      environment:
+        KUBECONFIG: "{{ settings.rancher_config.kubernetes.config }}"

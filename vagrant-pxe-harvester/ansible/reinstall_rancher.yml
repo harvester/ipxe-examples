@@ -6,9 +6,6 @@
   hosts: localhost
   connection: local
   gather_facts: false
-  vars:
-    rancher_version: "{{ rancher_config.version }}"
-    rancher_ip: "{{ rancher_config.ip }}"
   
   tasks:
     - name: Check rancher is enabled
@@ -23,12 +20,12 @@
     - name: remove Rancher
       shell: vagrant destroy -f rancher && sleep 10
 
-    - name: install Rancher {{ rancher_version }}
+    - name: install Rancher {{ rancher_config.version }}
       shell: vagrant up rancher
 
-    - name: wait for Rancher {{ rancher_ip }} to get ready
+    - name: wait for Rancher {{ rancher_config.hostname }} to get ready
       uri:
-        url: "https://{{ rancher_ip }}"
+        url: "https://{{ rancher_config.hostname }}"
         validate_certs: no
         status_code: 200
         force: true
