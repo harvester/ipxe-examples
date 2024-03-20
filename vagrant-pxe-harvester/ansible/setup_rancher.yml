@@ -10,15 +10,11 @@
   tasks:
     - name: setup k3s 
       shell: curl -sfL https://get.k3s.io | sh -
-      args:
-        warn: false
       environment:
         INSTALL_K3S_VERSION: "{{ settings.rancher_config.kubernetes.version }}"
 
     - name: setup helm
       shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-      args:
-        warn: false
 
     - name: update repo
       shell: |
