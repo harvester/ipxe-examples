@@ -50,7 +50,7 @@ harvester_network_config:
     range: 192.168.0.50 192.168.0.130
     https: false
     #  Change this to a custom DNS server if you need one for your DHCP scope
-    dns_server: 4.4.2.2
+    dns_server: 1.1.1.1
 
   dns_servers:
   # This is a list of DNS servers that will be included in your Harvester OS config
