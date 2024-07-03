@@ -142,22 +142,22 @@ harvester_node_config:
 # Rancher setup on an independent node.
 #
 # Support Matrix: https://www.suse.com/suse-rancher/support-matrix/all-supported-versions
-# K3s Release: https://github.com/k3s-io/k3s/releases
+# K3s Release: https://docs.k3s.io/release-notes/v1.28.X
 #
 rancher_config:
   enabled: false
-  version: v2.8.2
+  version: v2.8.5
   repo: https://releases.rancher.com/server-charts/latest
 
   kubernetes:
-    version: v1.27.11+k3s1
+    version: v1.28.11+k3s1
     config: /etc/rancher/k3s/k3s.yaml
 
   # IP should be out of harvester_network_config.dhcp_server.range and does not
   # conflict with other static IPs (e.g. Harvester).
   ip: 192.168.0.141
   hostname: rancher.192.168.0.141.sslip.io
-  password: rancher
+  password: password1234
 
   cpu: 2
   memory: 4096
