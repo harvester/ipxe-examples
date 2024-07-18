@@ -38,7 +38,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       libvirt__dhcp_enabled: false
 
     pxe_server.vm.provider :libvirt do |libvirt|
-      libvirt.cpu_mode = 'host-passthrough'
       libvirt.memory = '1024'
       libvirt.cpus = '1'
     end
@@ -62,7 +61,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         mac: @settings['harvester_network_config']['cluster'][node_number]['mac']
 
       harvester_node.vm.provider :libvirt do |libvirt|
-        libvirt.cpu_mode = 'host-passthrough'
         libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
         libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
         libvirt.storage :file,
@@ -91,7 +89,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt__dhcp_enabled: false
 
         rancher.vm.provider :libvirt do |libvirt|
-        libvirt.cpu_mode = 'host-passthrough'
         libvirt.cpus = @settings['rancher_config']['cpu']
         libvirt.memory = @settings['rancher_config']['memory']
       end
