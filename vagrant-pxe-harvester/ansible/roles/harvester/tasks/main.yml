@@ -4,6 +4,12 @@
     path: /var/www/harvester
     state: directory
 
+- name: chown dir
+  file:
+    path: /var/www/harvester/
+    owner: www-data
+    recurse: yes
+
 - name: copy config-create.yaml
   template:
     src: "config-create.yaml.j2"
@@ -11,43 +17,46 @@
     owner: www-data
     mode: 0640
 
+- name: create boot entry for the first node
+  template:
+    src: ipxe-create.j2
+    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][0]['mac'] | lower }}
+    owner: www-data
+    mode: 0640
+  vars:
+    boot_interface: "{{ settings['harvester_network_config']['cluster'][0]['vagrant_interface'] }}"
+
 # NOTE(gyee): Ansible pre-process the with_sequence variable so we have to
 # make sure end sequence is at least 1 even if we have only one Harvester node
 - name: set node sequence fact
   set_fact:
-    end_sequence: "{{ settings['harvester_network_config']['cluster'] | length - 1}}"
+    end_sequence: "{{ [1, settings['harvester_network_config']['cluster'] | length - 1] | max }}"
 
-- name: copy config-join.yaml
-  template:
-    src: "config-join.yaml.j2"
-    dest: /var/www/harvester/config-join-{{ item }}.yaml
-    owner: www-data
-    mode: 0640
-  vars:
-    node_number: "{{ item }}"
-  with_sequence: "start=1 end={{ end_sequence }}"
+- name: Joining
+  block:
 
-- name: chown dir
-  file:
-    path: /var/www/harvester/
-    owner: www-data
-    recurse: yes
+    - name: copy config-join.yaml
+      template:
+        src: "config-join.yaml.j2"
+        dest: /var/www/harvester/config-join-{{ item }}.yaml
+        owner: www-data
+        mode: 0640
+      vars:
+        node_number: "{{ item }}"
+      with_sequence: "start=1 end={{ end_sequence }}"
 
-- name: create boot entry for the first node
-  template:
-    src: ipxe-create.j2
-    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][0]['mac']|lower }}
-  vars:
-    boot_interface: "{{ settings['harvester_network_config']['cluster'][0]['vagrant_interface'] }}"
+    - name: create boot entry for the cluster members
+      template:
+        src: ipxe-join.j2
+        dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][item | int]['mac'] | lower }}
+        owner: www-data
+        mode: 0640
+      vars:
+        node_number: "{{ item }}"
+        boot_interface: "{{ settings['harvester_network_config']['cluster'][item | int]['vagrant_interface'] }}"
+      with_sequence: "start=1 end={{ end_sequence }}"
 
-- name: create boot entry for the cluster members
-  template:
-    src: ipxe-join.j2
-    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][item|int]['mac']|lower }}
-  vars:
-    node_number: "{{ item }}"
-    boot_interface: "{{ settings['harvester_network_config']['cluster'][item|int]['vagrant_interface'] }}"
-  with_sequence: "start=1 end={{ end_sequence }}"
+  when: end_sequence | int > 1
 
 - name: download Harvester kernel
   include_tasks: _download_media.yml

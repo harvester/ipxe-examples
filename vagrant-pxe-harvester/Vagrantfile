@@ -26,7 +26,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # continerd is taking more than 60 seconds to shutdown in SUSE platforms
   # so increase the timeout to 120 seconds
   config.vm.graceful_halt_timeout = 120
-  
+
   # PXE Server
   config.vm.define :pxe_server do |pxe_server|
     pxe_server.vm.box = 'generic/debian10'
@@ -52,30 +52,53 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # Harvester
-  cluster_node_index = @settings['harvester_cluster_nodes'] - 1
+  nodes = @settings['harvester_network_config']['cluster']
+  cluster_node_index = nodes.length - 1
   (0..cluster_node_index).each do |node_number|
+    node = nodes[node_number]
+
     vm_name = "harvester-node-#{node_number}"
     config.vm.define vm_name, autostart: false do |harvester_node|
       harvester_node.vm.hostname = "harvester-node-#{node_number}"
       harvester_node.vm.network 'private_network',
         libvirt__network_name: 'harvester',
-        mac: @settings['harvester_network_config']['cluster'][node_number]['mac']
+        mac: node['mac']
 
       harvester_node.vm.provider :libvirt do |libvirt|
         libvirt.cpu_mode = 'host-passthrough'
-        libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
-        libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
-        libvirt.storage :file,
-          size: @settings['harvester_network_config']['cluster'][node_number].key?('disk_size') ? @settings['harvester_network_config']['cluster'][node_number]['disk_size'] : @settings['harvester_node_config']['disk_size'],
-          type: 'qcow2',
-          bus: 'virtio',
-          device: 'vda'
+        libvirt.memory = node.key?('memory') ? node['memory'] : 8192
+        libvirt.cpus = node.key?('cpu') ? node['cpu'] : 4
+
+        # disks
+        disks = node['disks']
+        num_disks = disks.length - 1
+        (0..num_disks).each do |disk_index|
+          disk = disks[disk_index]
+
+          if disk['bus'] == 'virtio'
+            libvirt.storage :file,
+              device: disk['name'],
+              size: disk['size'],
+              type: 'qcow2',
+              bus: disk['bus']
+          elsif disk['bus'] == 'scsi'
+            libvirt.storage :file,
+              device: disk['name'],
+              size: disk['size'],
+              type: 'qcow2',
+              bus: disk['bus'],
+              wwn: disk['wwn']
+          end
+        end
+
         boot_network = {'network' => 'harvester'}
         libvirt.boot 'hd'
         libvirt.boot boot_network
         # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
-        libvirt.loader = '/usr/share/qemu/OVMF.fd'
-        libvirt.nic_model_type = 'e1000'
+        # libvirt.loader = '/usr/share/qemu/OVMF.fd'
+        libvirt.loader = '/usr/share/qemu/ovmf-x86_64.bin'
+        # libvirt.nic_model_type = 'e1000'
+        libvirt.nic_model_type = 'virtio'
       end
     end
   end
