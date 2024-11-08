@@ -38,7 +38,7 @@
     include_tasks: boot_harvester_node.yml
     vars:
       node_number: "{{ item }}"
-    with_sequence: 0-{{ harvester_cluster_nodes|int - 1 }}
+    with_sequence: 0-{{ harvester_network_config['cluster'] | length - 1 }}
 
   - name: install Rancher {{ rancher_config.version }}
     shell: >
