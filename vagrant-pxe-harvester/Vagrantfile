@@ -111,7 +111,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
           nvme0_name = "#{File.basename(@root_dir)}_#{vm_name}-nvme0.qcow2"
           require 'nokogiri'
-          pool_path = Nokogiri::XML(%x(virsh pool-dumpxml default)).at_xpath('/pool/target/path').content
+          pool_path = Nokogiri::XML(%x(virsh -c qemu:///system pool-dumpxml default)).at_xpath('/pool/target/path').content
           nvme0_path = File.join(pool_path, nvme0_name)
 
           require 'etc'
@@ -141,6 +141,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             # `virsh vol-info ... ` at the start ensures we skip the call to
             # `virsh vol-create` if the volume already exists
             trigger.run = {inline: "sh -c \"\
+              export LIBVIRT_DEFAULT_URI=qemu:///system ; \
               virsh vol-info --pool=default #{nvme0_name} >/dev/null 2>&1 || \
               virsh vol-create-as default #{nvme0_name} \
                     --capacity #{@settings['harvester_network_config']['cluster'][node_number]['nvme_size']} \
@@ -151,7 +152,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
           harvester_node.trigger.after :destroy do |trigger|
             trigger.warn = "Destroying volume #{nvme0_name}"
-            trigger.run = {inline: "virsh vol-delete --pool default #{nvme0_name}"}
+            # `|| :`` on the end here means that we don't abort the Vagrant
+            # run even if the volume doesn't exist or deletion fails (an error
+            # will still be logged to the console)
+            trigger.run = {inline: "sh -c \"virsh -c qemu:///system vol-delete --pool default #{nvme0_name} || :\""}
           end
         end
       end
