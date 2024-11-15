@@ -54,7 +54,7 @@
     register: http_resp
     until: http_resp.status == 200
     retries: 10
-    delay: 30
+    delay: 60
     when: rancher_config.enabled
 
   - debug:

@@ -6,12 +6,14 @@
   hosts: all
   become: yes
   any_errors_fatal: true
+  vars:
+    kubeconfig: /etc/rancher/k3s/k3s.yaml
   
   tasks:
     - name: setup k3s 
       shell: curl -sfL https://get.k3s.io | sh -
       environment:
-        INSTALL_K3S_VERSION: "{{ settings.rancher_config.kubernetes.version }}"
+        INSTALL_K3S_CHANNEL: "{{ settings.rancher_config.k3s_channel }}"
 
     - name: setup helm
       shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -27,9 +29,9 @@
         helm install cert-manager jetstack/cert-manager
         --namespace cert-manager
         --create-namespace
-        --set installCRDs=true
+        --set crds.enabled=true
       environment:
-        KUBECONFIG: "{{ settings.rancher_config.kubernetes.config }}"
+        KUBECONFIG: "{{ kubeconfig }}"
 
     - name: setup rancher
       shell: >
@@ -41,4 +43,4 @@
         --set bootstrapPassword={{ settings.rancher_config.password }}
         --set hostname={{ settings.rancher_config.hostname }}
       environment:
-        KUBECONFIG: "{{ settings.rancher_config.kubernetes.config }}"
+        KUBECONFIG: "{{ kubeconfig }}"
