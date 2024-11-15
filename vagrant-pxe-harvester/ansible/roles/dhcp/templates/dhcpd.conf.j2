@@ -36,7 +36,7 @@ host harvest_vip {
 
 {% for node_number in range(settings['harvester_network_config']['cluster'] | length) %}
 host harvest_node_{{ node_number }} {
-    hardware ethernet {{ settings['harvester_network_config']['cluster'][node_number]['mac'] }};
+    hardware ethernet {{ settings['harvester_network_config']['cluster'][node_number]['mgmt_mac'] }};
     fixed-address {{ settings['harvester_network_config']['cluster'][node_number]['ip'] }};
     server-name "harvester-node-{{ node_number }}";
 }

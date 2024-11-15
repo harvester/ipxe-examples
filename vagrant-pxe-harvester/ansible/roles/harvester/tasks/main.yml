@@ -15,7 +15,7 @@
 # make sure end sequence is at least 1 even if we have only one Harvester node
 - name: set node sequence fact
   set_fact:
-    end_sequence: "{{ settings['harvester_network_config']['cluster'] | length - 1}}"
+    end_sequence: "{{ settings['harvester_network_config']['cluster'] | length - 1 }}"
 
 - name: copy config-join.yaml
   template:
@@ -36,17 +36,17 @@
 - name: create boot entry for the first node
   template:
     src: ipxe-create.j2
-    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][0]['mac']|lower }}
+    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][0]['mgmt_mac']|lower }}
   vars:
-    boot_interface: "{{ settings['harvester_network_config']['cluster'][0]['vagrant_interface'] }}"
+    boot_interface: "{{ settings['harvester_network_config']['cluster'][0]['vagrant_nic'] }}"
 
 - name: create boot entry for the cluster members
   template:
     src: ipxe-join.j2
-    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][item|int]['mac']|lower }}
+    dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][item|int]['mgmt_mac']|lower }}
   vars:
     node_number: "{{ item }}"
-    boot_interface: "{{ settings['harvester_network_config']['cluster'][item|int]['vagrant_interface'] }}"
+    boot_interface: "{{ settings['harvester_network_config']['cluster'][item|int]['vagrant_nic'] }}"
   with_sequence: "start=1 end={{ end_sequence }}"
 
 - name: download Harvester kernel

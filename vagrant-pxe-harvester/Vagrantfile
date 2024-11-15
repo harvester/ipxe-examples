@@ -23,7 +23,7 @@ ENV['VAGRANT_DEFAULT_PROVIDER'] = "libvirt"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # continerd is taking more than 60 seconds to shutdown in SUSE platforms
+  # containerd is taking more than 60 seconds to shutdown in SUSE platforms
   # so increase the timeout to 120 seconds
   config.vm.graceful_halt_timeout = 120
   
@@ -59,7 +59,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       harvester_node.vm.hostname = "harvester-node-#{node_number}"
       harvester_node.vm.network 'private_network',
         libvirt__network_name: 'harvester',
-        mac: @settings['harvester_network_config']['cluster'][node_number]['mac']
+        mac: @settings['harvester_network_config']['cluster'][node_number]['mgmt_mac']
 
       harvester_node.vm.provider :libvirt do |libvirt|
         libvirt.cpu_mode = 'host-passthrough'
