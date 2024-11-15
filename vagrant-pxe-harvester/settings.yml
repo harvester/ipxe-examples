@@ -7,11 +7,11 @@
 #
 # harvester_iso_url
 # harvester_kernel_url
-# harvester_initrd_url
+# harvester_ramdisk_url
+# harvester_rootfs_url
 #
-# Harvester media to install. The URL scheme can be either 'http', 'https', or
-# 'file'. If the URL scheme is 'file', the given media will be copied from the
-# local file system instead of downloading from a remote location.
+# Harvester media location. URL schema can be either 'http', 'https' or 'file'
+#
 harvester_iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
 harvester_kernel_url: https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64
 harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
@@ -33,10 +33,7 @@ harvester_cluster_nodes: 3
 #
 # NOTE: Random MAC addresses are generated with the following command:
 # printf '02:00:00:%02X:%02X:%02X\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256))
-# Thanks to https://stackoverflow.com/questions/8484877/mac-address-generator-in-python
-# If any of the generated MAC addresses is in conflict with an existing one in
-# your environment, please use the above command to regenerate and replace
-# the conflicting one.
+# Ref. https://stackoverflow.com/questions/8484877/mac-address-generator-in-python
 #
 harvester_network_config:
   # Run as an airgapped environment that only has internet connectivity through an HTTP proxy.
@@ -49,21 +46,22 @@ harvester_network_config:
     netmask: 255.255.255.0
     range: 192.168.0.50 192.168.0.130
     https: false
-    #  Change this to a custom DNS server if you need one for your DHCP scope
+    # Custom DNS to prepend on DHCP server's domain-name-servers option
     dns_server: 1.1.1.1
 
+  # DNS for Harvester OS
   dns_servers:
-  # This is a list of DNS servers that will be included in your Harvester OS config
     - 192.168.0.254
     - 8.8.8.8
 
-  # Reserve these IPs for the Harvester cluster. Make sure these are outside
-  # the range of DHCP so they don't get served out by the DHCP server
+  # Subsystem used to configure the sshd, refer to harvester configuration 'os.sshd.sftp'.
+  sftp: true
+
+  # Reserved following IPs for Harvester cluster. Make sure they are outside the DHCP range.
   vip:
     ip: 192.168.0.131
     mode: DHCP
     mac: 02:00:00:03:3D:61
-  sftp: true
   cluster:
     # role: default, management, witness or worker
     - ip: 192.168.0.30
@@ -74,7 +72,6 @@ harvester_network_config:
       vagrant_nic: ens5
       mgmt_nic: ens6
       mgmt_mac: 02:00:00:0D:62:E2
-
     - ip: 192.168.0.31
       role: default
       cpu: 8
@@ -83,7 +80,6 @@ harvester_network_config:
       vagrant_nic: ens5
       mgmt_nic: ens6
       mgmt_mac: 02:00:00:35:86:92
-
     - ip: 192.168.0.32
       role: default
       cpu: 8
@@ -92,7 +88,6 @@ harvester_network_config:
       vagrant_nic: ens5
       mgmt_nic: ens6
       mgmt_mac: 02:00:00:2F:F2:2A
-
     - ip: 192.168.0.33
       role: default
       cpu: 8
@@ -113,10 +108,9 @@ harvester_config:
 
   # Public keys to add to authorized_keys of each node.
   ssh_authorized_keys:
-    # Vagrant default unsecured SSH public key
     - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key
 
-  # password to for the `rancher` user to login to the Harvester nodes via SSH
+  # password for the user 'rancher' to SSH Harvester nodes
   password: p@ssword
 
   # NTP servers
