@@ -17,9 +17,9 @@ os:
 {% for ntp_server in settings['harvester_config']['ntp_servers'] %}
     - {{ ntp_server }}
 {% endfor %}
-{% if settings['harvester_network_config']['sftp'] %}
+{% if settings['harvester_config']['sftp'] %}
   sshd:
-    sftp: {{ settings['harvester_network_config']['sftp'] }}
+    sftp: {{ settings['harvester_config']['sftp'] }}
 {% endif %}
 install:
   mode: create
