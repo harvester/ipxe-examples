@@ -19,6 +19,78 @@ Prerequisites
     environment was tested with qemu-kvm 2.11.
 -   Host with at least 16 CPU, 64GB RAM, and 500GB free disk space. (note: running this is **very** resource intensive depending on the number of nodes)
 
+Installing Vagrant
+------------------
+
+Vagrant documentation has a [section](https://developer.hashicorp.com/vagrant/install) describing how to install it on various platforms. But if you are using openSUSE Tumbleweed, following specific steps outlined below might help.
+
+At the time of writing this, latest version of Vagrant is 2.4.3.
+
+1. Download the RPM from the [releases page](https://releases.hashicorp.com/vagrant/2.4.3/) and install it using `rpm -i`.
+2. Install dependencies for vagrant libvirt plugin which we need to create virtual machines:
+    ```sh
+    $ sudo zypper install qemu libvirt libvirt-devel
+    ```
+3. Install the plugin:
+    ```sh
+    $ vagrant plugin install vagrant-libvirt
+    ```
+
+### Troubleshooting
+
+A common error while attempting to install vagrant-libvirt plugin is:
+```
+Vagrant failed to install the requested plugin because it depends
+on development files for a library which is not currently installed
+on this system. The following library is required by the 'vagrant-libvirt'
+plugin:
+
+libvirt
+
+If a package manager is used on this system, please install the development
+package for the library. The name of the package will be similar to:
+
+libvirt-dev or libvirt-devel
+
+After the library and development files have been installed, please
+run the command again.
+```
+In spite of installing `libvirt` and `libvirt-devel`, the error is complaining about their inexistence. Enable the debug mode:
+```sh
+$ vagrant plugin install vagrant-libvirt --debug
+Building native extensions. This could take a while...
+Building native extensions. This could take a while...
+WARN manager: Failed to install plugin: ERROR: Failed to build gem native extension.
+
+    current directory: /root/.vagrant.d/gems/3.3.6/gems/ruby-libvirt-0.8.4/ext/libvirt
+/opt/vagrant/embedded/bin/ruby extconf.rb
+checking for pkg-config for libvirt... not found
+*** extconf.rb failed ***
+Could not create Makefile due to some reason, probably lack of necessary
+libraries and/or headers.  Check the mkmf.log file for more details.  You may
+need configuration options.
+
+[...]
+
+extconf.rb:6:in `<main>': libvirt library not found in default locations (RuntimeError)
+
+To see why this extension failed to compile, please check the mkmf.log which can be found here:
+
+/root/.vagrant.d/gems/3.3.6/extensions/x86_64-linux/3.3.0/ruby-libvirt-0.8.4/mkmf.log
+
+extconf failed, exit code 1
+```
+It asks to look at `mkmf.log` file for more details. Exact path might differ on your system. In the `mkmf.log` file, see if there is an error message like below:
+```
+/bin/sh: symbol lookup error: /opt/vagrant/embedded/lib/libreadline.so.8: undefined symbol: UP
+```
+If you do see that message, delete the file in question and try installing the pluging again:
+```sh
+$ rm /opt/vagrant/embedded/lib/libreadline.so.8
+
+$ vagrant plugin install vagrant-libvirt 
+```
+
 Quick Start
 -----------
 
