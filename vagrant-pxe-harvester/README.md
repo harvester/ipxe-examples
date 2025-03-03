@@ -26,7 +26,13 @@ Vagrant documentation has a [section](https://developer.hashicorp.com/vagrant/in
 
 At the time of writing this, latest version of Vagrant is 2.4.3.
 
-1. Download the RPM from the [releases page](https://releases.hashicorp.com/vagrant/2.4.3/) and install it using `rpm -i`.
+1. Download the RPM from the [releases page](https://releases.hashicorp.com/vagrant/2.4.3/) and install it using
+  `rpm -i`. Installing a package outside of the package management tool `zypper`
+  will mark it for deletion on the next run of `zypper dist-upgrade`. To prevent
+  this, add a lock using:
+    ```sh
+    $ sudo zypper addlock vagrant
+    ```
 2. Install dependencies for vagrant libvirt plugin which we need to create virtual machines:
     ```sh
     $ sudo zypper install qemu libvirt libvirt-devel
