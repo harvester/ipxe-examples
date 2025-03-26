@@ -1,6 +1,7 @@
 # vi: set ft=ruby ts=2 :
 
 require 'yaml'
+require 'nokogiri'
 
 VAGRANTFILE_API_VERSION = "2"
 
@@ -14,12 +15,40 @@ exit(1) unless _required_plugins_list.all? do |plugin|
   )
 end
 
+def create_nvme(trigger, name, size, type)
+  trigger.warn = "Creating volume #{name}"
+
+  require 'etc'
+  storage_owner = begin
+                    Etc.getpwnam('qemu')
+                  rescue
+                    Etc.getpwnam('root')
+                  end
+
+  trigger.run = {inline: "sh -c \"\
+    virsh -c qemu:///system vol-info --pool default #{name} >/dev/null 2>&1 || \
+    virsh -c qemu:///system vol-create-as default #{name} \
+      --capacity #{size} \
+      --format #{type} \
+      --print-xml | \
+    sed '/<target>/a <permissions><owner>#{storage_owner.uid}</owner><group>#{storage_owner.gid}</group></permissions>' | \
+    virsh -c qemu:///system vol-create default /dev/stdin 2>&1\""}
+end
+
+def delete_nvme(trigger, name)
+  trigger.warn = "Destroying volume #{name}"
+
+  trigger.run = {inline: "sh -c \"\
+    virsh -c qemu:///system vol-delete --pool default #{name} || :\""}
+end
+
 # ensure libvirt is the default provider in case the vagrant box config
 # doesn't specify it
 ENV['VAGRANT_DEFAULT_PROVIDER'] = "libvirt"
 
 @root_dir = File.dirname(File.expand_path(__FILE__))
 @settings = YAML.load_file(File.join(@root_dir, "settings.yml"))
+@pool_path = Nokogiri::XML(%x(virsh -c qemu:///system pool-dumpxml default)).at_xpath('/pool/target/path').content
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
@@ -29,18 +58,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # PXE Server
   config.vm.define :pxe_server do |pxe_server|
-    pxe_server.vm.box = 'generic/debian10'
+    pxe_server.vm.box = 'generic/debian11'
     pxe_server.vm.hostname = 'pxe-server'
     pxe_server.vm.network 'private_network',
       ip: @settings['harvester_network_config']['dhcp_server']['ip'],
       libvirt__network_name: 'harvester',
-      # don't enable DHCP as this node will have it's now DHCP server for iPXE
       libvirt__dhcp_enabled: false
 
     pxe_server.vm.provider :libvirt do |libvirt|
       libvirt.cpu_mode = 'host-passthrough'
-      libvirt.memory = '1024'
-      libvirt.cpus = '1'
+      libvirt.memory = '2048'
+      libvirt.cpus = '2'
     end
 
     pxe_server.vm.provision :ansible do |ansible|
@@ -65,6 +93,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         mac: node['mac']
 
       harvester_node.vm.provider :libvirt do |libvirt|
+        # libvirt.nested = true
         libvirt.cpu_mode = 'host-passthrough'
         libvirt.memory = node.key?('memory') ? node['memory'] : 8192
         libvirt.cpus = node.key?('cpu') ? node['cpu'] : 4
@@ -75,19 +104,51 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         (0..num_disks).each do |disk_index|
           disk = disks[disk_index]
 
-          if disk['bus'] == 'virtio'
-            libvirt.storage :file,
-              device: disk['name'],
-              size: disk['size'],
-              type: 'qcow2',
-              bus: disk['bus']
-          elsif disk['bus'] == 'scsi'
+          if disk['bus'] == 'scsi'
             libvirt.storage :file,
               device: disk['name'],
               size: disk['size'],
               type: 'qcow2',
               bus: disk['bus'],
-              wwn: disk['wwn']
+              cache: disk.key?('cache') ? disk['cache'] : 'default',
+              wwn: disk.key?('wwn') ? disk['wwn'] : '0x5100000000000001'
+          elsif disk['bus'] == 'nvme'
+            nvme_name = "#{File.basename(@root_dir)}_#{vm_name}-#{disk['name']}.qcow2"
+            nvme_path = File.join(@pool_path, nvme_name)
+
+            bootidx_str = ""
+            if node.key?('root_disk')
+              if node['root_disk'] == disk['name']
+                bootidx_str = ",bootindex=0"
+              end
+            else
+              if disk_index == 0
+                bootidx_str = ",bootindex=0"
+              end
+            end
+
+            serial_nr = "#{node_number}#{disk_index}_1234"
+            addr = "1#{disk_index}"
+
+            libvirt.qemuargs :value => '-drive'
+            libvirt.qemuargs :value => "file=#{nvme_path},if=none,id=#{disk['name']}"
+            libvirt.qemuargs :value => '-device'
+            libvirt.qemuargs :value => "nvme,addr=#{addr},drive=#{disk['name']},serial=#{serial_nr}#{bootidx_str}"
+
+            harvester_node.trigger.before :up do |trigger|
+              create_nvme(trigger, nvme_name, disk['size'], disk.key?('type') ? disk['type'] : 'qcow2')
+            end
+
+            harvester_node.trigger.before :destroy do |trigger|
+              delete_nvme(trigger, nvme_name)
+            end
+          else
+            libvirt.storage :file,
+              device: disk['name'],
+              size: disk['size'],
+              type: 'qcow2',
+              bus: disk.key?('bus') ? disk['bus'] : 'virtio',
+              cache: disk.key?('cache') ? disk['cache'] : 'default'
           end
         end
 

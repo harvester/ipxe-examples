@@ -1,0 +1,32 @@
+- set_fact:
+    mac: "{{ settings['harvester_network_config']['cluster'][node_number | int]['mac'] | lower }}"
+    disks: "{{ settings.harvester_network_config.cluster[node_number | int].disks }}"
+
+- set_fact:
+    nvme_disks: "{{ disks | selectattr(\"bus\", \"defined\") | selectattr(\"bus\", \"eq\", \"nvme\") }}"
+    scsi_disks: "{{ disks | selectattr(\"bus\", \"defined\") | selectattr(\"bus\", \"eq\", \"scsi\") }}"
+    virt_disks: "{{ ( disks | selectattr(\"bus\", \"undefined\") ) + ( disks | selectattr(\"bus\", \"defined\") | selectattr(\"bus\", \"eq\", \"virtio\") ) }}"
+
+- name: Calculate Iterfaces
+  set_fact:
+    boot_interface: ens{{ ( virt_disks | length ) + ( [ ( scsi_disks | length ), 1 ] | min ) + 4 }}
+    mgmt_interface: ens{{ ( virt_disks | length ) + ( [ ( scsi_disks | length ), 1 ] | min ) + 5 }}
+
+- debug:
+    msg: |
+      node{{ node_number | int }} boot interface: {{ boot_interface }}
+      node{{ node_number | int }} mgmt interface: {{ mgmt_interface }}
+
+- name: copy config-join.yaml
+  template:
+    src: "config-join.yaml.j2"
+    dest: /var/www/harvester/config-join-{{ node_number }}.yaml
+    owner: www-data
+    mode: 0640
+
+- name: create boot entry for the cluster members
+  template:
+    src: ipxe-join.j2
+    dest: /var/www/harvester/{{ mac }}
+    owner: www-data
+    mode: 0640
