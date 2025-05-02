@@ -126,14 +126,14 @@ harvester_node_config:
 #
 # rancher_config
 #
-# Rancher setup on K3s cluster. Refer supported versions on
-# https://www.suse.com/suse-rancher/support-matrix/all-supported-versions
-#
+# Rancher setup on K3s cluster.
+# Refer support matrix on https://ranchermanager.docs.rancher.com/versions
+# 
 rancher_config:
   enabled: false
 
-  version: v2.9.3
-  k3s_channel: v1.30
+  version: v2.11.0
+  k3s_channel: v1.32
   repo: https://releases.rancher.com/server-charts/latest
 
   # Reserved IP for Rancher. Do not conflict with DHCP range and other reserved IPs.
