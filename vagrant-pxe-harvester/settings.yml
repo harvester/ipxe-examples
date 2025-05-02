@@ -12,17 +12,17 @@
 #
 # Harvester media location. URL schema can be either 'http', 'https' or 'file'.
 #
-harvester_iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
-harvester_kernel_url: https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64
-harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
-harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-master-rootfs-amd64.squashfs
+harvester_iso_url: https://releases.rancher.com/harvester/v1.5.0/harvester-v1.5.0-amd64.iso
+harvester_kernel_url: https://releases.rancher.com/harvester/v1.5.0/harvester-v1.5.0-vmlinuz-amd64
+harvester_ramdisk_url: https://releases.rancher.com/harvester/v1.5.0/harvester-v1.5.0-initrd-amd64
+harvester_rootfs_url: https://releases.rancher.com/harvester/v1.5.0/harvester-v1.5.0-rootfs-amd64.squashfs
 
 #
 # harvester_cluster_nodes
 #
 # Current Harvester cluster size. Keep in mind that you need at least 3 nodes to make a cluster.
 #
-harvester_cluster_nodes: 3
+harvester_cluster_nodes: 1
 
 #
 # network_config

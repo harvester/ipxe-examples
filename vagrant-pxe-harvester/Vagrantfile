@@ -29,7 +29,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   # PXE Server
   config.vm.define :pxe_server do |pxe_server|
-    pxe_server.vm.box = 'generic/debian10'
+    pxe_server.vm.box = 'generic/debian12'
     pxe_server.vm.hostname = 'pxe-server'
     pxe_server.vm.network 'private_network',
       ip: @settings['harvester_network_config']['dhcp_server']['ip'],
@@ -67,7 +67,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
         libvirt.storage :file,
           size: @settings['harvester_network_config']['cluster'][node_number].key?('disk_size') ? @settings['harvester_network_config']['cluster'][node_number]['disk_size'] : @settings['harvester_node_config']['disk_size'],
-          type: 'qcow2',
+          type: 'raw',
           bus: 'virtio',
           device: 'vda'
         boot_network = {'network' => 'harvester'}
@@ -83,7 +83,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Rancher
   if @settings['rancher_config']['enabled']
     config.vm.define :rancher do |rancher|
-      rancher.vm.box = 'generic/debian10'
+      rancher.vm.box = 'generic/debian12'
       rancher.vm.hostname = 'rancher'
       rancher.vm.network 'private_network',
         ip: @settings['rancher_config']['ip'],

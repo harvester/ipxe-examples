@@ -19,8 +19,9 @@ install:
       mode: balance-tlb
       miimon: 100
   device: /dev/sda       # The target disk to install
-  iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
-#  tty: ttyS1,115200n8   # For machines without a VGA console
+  iso_url: https://releases.rancher.com/harvester/v1.5.0/harvester-v1.5.0-amd64.iso
+
+  #  tty: ttyS1,115200n8   # For machines without a VGA console
 
   vip: 10.10.0.19
   vip_mode: dhcp                   # Or static
