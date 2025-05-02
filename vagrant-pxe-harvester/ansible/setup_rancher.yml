@@ -39,7 +39,6 @@
         --namespace cattle-system
         --create-namespace
         --version {{ settings.rancher_config.version }}
-        --set-string ingress.extraAnnotations.'nginx\.ingress\.kubernetes\.io/http2-push-preload'=false
         --set bootstrapPassword={{ settings.rancher_config.password }}
         --set hostname={{ settings.rancher_config.hostname }}
       environment:
