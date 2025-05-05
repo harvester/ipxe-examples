@@ -22,7 +22,7 @@ harvester_rootfs_url: https://releases.rancher.com/harvester/v1.5.0/harvester-v1
 #
 # Current Harvester cluster size. Keep in mind that you need at least 3 nodes to make a cluster.
 #
-harvester_cluster_nodes: 1
+harvester_cluster_nodes: 3
 
 #
 # network_config
