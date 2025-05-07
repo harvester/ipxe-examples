@@ -38,7 +38,8 @@
     src: ipxe-create.j2
     dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][0]['mgmt_mac']|lower }}
   vars:
-    boot_interface: "{{ settings['harvester_network_config']['cluster'][0]['vagrant_nic'] }}"
+    boot_interface: "{{ settings['harvester_network_config']['cluster'][0]['mgmt_nic'] }}"
+    boot_server_address: "{{ settings['harvester_network_config']['dhcp_server']['ip'] }}"
 
 - name: create boot entry for the cluster members
   template:
@@ -46,7 +47,8 @@
     dest: /var/www/harvester/{{ settings['harvester_network_config']['cluster'][item|int]['mgmt_mac']|lower }}
   vars:
     node_number: "{{ item }}"
-    boot_interface: "{{ settings['harvester_network_config']['cluster'][item|int]['vagrant_nic'] }}"
+    boot_interface: "{{ settings['harvester_network_config']['cluster'][item|int]['mgmt_nic'] }}"
+    boot_server_address: "{{ settings['harvester_network_config']['dhcp_server']['ip'] }}"
   with_sequence: "start=1 end={{ end_sequence }}"
 
 - name: download Harvester kernel
