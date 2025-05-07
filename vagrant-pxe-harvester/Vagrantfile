@@ -61,7 +61,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt__network_name: 'harvester',
         mac: @settings['harvester_network_config']['cluster'][node_number]['mgmt_mac']
 
+      harvester_node.ssh.host = "#{@settings['harvester_network_config']['cluster'][node_number]['ip']}"
+      harvester_node.ssh.username = "rancher"
+
       harvester_node.vm.provider :libvirt do |libvirt|
+        libvirt.qemu_use_agent = true
+        libvirt.mgmt_attach = false
         libvirt.cpu_mode = 'host-passthrough'
         libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
         libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']

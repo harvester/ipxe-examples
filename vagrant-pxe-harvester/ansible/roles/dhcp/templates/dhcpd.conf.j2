@@ -21,7 +21,7 @@ subnet {{ settings['harvester_network_config']['dhcp_server']['subnet'] }} netma
     next-server {{ settings['harvester_network_config']['dhcp_server']['ip'] }};
 
    if exists user-class and option user-class = "iPXE" {
-        filename "http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/${net1/mac}";
+        filename "http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}/harvester/${net0/mac}";
     } elsif option arch != 00:00 {
         filename "ipxe/ipxe.efi";
     } else {
