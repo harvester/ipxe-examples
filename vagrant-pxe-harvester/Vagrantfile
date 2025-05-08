@@ -73,9 +73,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         boot_network = {'network' => 'harvester'}
         libvirt.boot 'hd'
         libvirt.boot boot_network
+
+        os_release = `cat /etc/os-release`.downcase
+        loader_path = if os_release.include?("ubuntu")
+            "/usr/share/qemu/OVMF.fd"
+        else
+            "/usr/share/qemu/ovmf-x86_64.bin"
+        end
         # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
-        libvirt.loader = '/usr/share/qemu/ovmf-x86_64.bin'
-        libvirt.nic_model_type = 'virtio'
+        libvirt.loader = loader_path
+        libvirt.nic_model_type = 'e1000'
       end
     end
   end
