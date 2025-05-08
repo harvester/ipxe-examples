@@ -29,7 +29,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   # PXE Server
   config.vm.define :pxe_server do |pxe_server|
-    pxe_server.vm.box = 'generic/debian10'
+    pxe_server.vm.box = 'generic/debian12'
     pxe_server.vm.hostname = 'pxe-server'
     pxe_server.vm.network 'private_network',
       ip: @settings['harvester_network_config']['dhcp_server']['ip'],
@@ -74,7 +74,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.boot 'hd'
         libvirt.boot boot_network
         # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
-        libvirt.loader = '/usr/share/qemu/ovmf-x86_64.bin'
+        libvirt.loader = '/usr/share/qemu/OVMF.fd'
         libvirt.nic_model_type = 'virtio'
       end
     end
@@ -83,7 +83,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Rancher
   if @settings['rancher_config']['enabled']
     config.vm.define :rancher do |rancher|
-      rancher.vm.box = 'generic/debian10'
+      rancher.vm.box = 'generic/debian12'
       rancher.vm.hostname = 'rancher'
       rancher.vm.network 'private_network',
         ip: @settings['rancher_config']['ip'],
