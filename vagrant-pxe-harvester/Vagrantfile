@@ -67,14 +67,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
         libvirt.storage :file,
           size: @settings['harvester_network_config']['cluster'][node_number].key?('disk_size') ? @settings['harvester_network_config']['cluster'][node_number]['disk_size'] : @settings['harvester_node_config']['disk_size'],
-          type: 'raw',
+          type: 'qcow2',
           bus: 'virtio',
           device: 'vda'
         boot_network = {'network' => 'harvester'}
         libvirt.boot 'hd'
         libvirt.boot boot_network
         # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
-        libvirt.loader = '/usr/share/qemu/ovmf-x86_64.bin'
+        libvirt.loader = '/usr/share/qemu/OVMF.fd'
         libvirt.nic_model_type = 'virtio'
       end
     end
