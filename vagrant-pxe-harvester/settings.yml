@@ -145,6 +145,7 @@ rancher_config:
 # The S3 service will be available at http://<dhcp-server-ip>:9000
 s3:
   enabled: false
+  capacity: '300G'
   port: 9000
   console_port: 9001
   username: admin

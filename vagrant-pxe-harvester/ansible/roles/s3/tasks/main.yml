@@ -5,6 +5,27 @@
       - podman
       - python3-boto3
       - python3-packaging
+      - xfsprogs
+
+- name: create filesystem for backup target
+  community.general.filesystem:
+    fstype: xfs
+    dev: /dev/vdb
+
+- name: create data directory
+  ansible.builtin.file:
+    path: /data
+    owner: root
+    group: root
+    mode: '0755'
+    state: directory
+
+- name: mount backup target filesystem
+  ansible.posix.mount:
+    path: /data
+    src: /dev/vdb
+    fstype: xfs
+    state: mounted
 
 - name: start minio container
   containers.podman.podman_container:
@@ -21,11 +42,13 @@
     env:
       MINIO_ROOT_USER: "{{ settings['s3']['username'] }}"
       MINIO_ROOT_PASSWORD: "{{ settings['s3']['password'] }}"
+    volumes:
+      - "/data:/data"
     state: started
 
 - name: create default bucket
   amazon.aws.s3_bucket:
-    endpoint_url: "http://{{ settings['harvester_network_config']['dhcp_server']['ip']:9000/"
+    endpoint_url: "http://{{ settings['harvester_network_config']['dhcp_server']['ip'] }}:9000/"
     validate_certs: false
     access_key: "{{ settings['s3']['username'] }}"
     secret_key: "{{ settings['s3']['password'] }}"
