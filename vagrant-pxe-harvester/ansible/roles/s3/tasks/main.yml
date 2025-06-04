@@ -1,0 +1,33 @@
+---
+- name: install packages
+  ansible.builtin.apt:
+    pkg:
+      - podman
+      - python3-boto3
+      - python3-packaging
+
+- name: start minio container
+  containers.podman.podman_container:
+    name: minio
+    image: quay.io/minio/minio:latest
+    command:
+      - server
+      - /data
+      - --console-address
+      - ":9001"
+    ports:
+      - "{{ settings['s3']['port'] }}:9000"
+      - "{{ settings['s3']['console_port'] }}:9001"
+    env:
+      MINIO_ROOT_USER: "{{ settings['s3']['username'] }}"
+      MINIO_ROOT_PASSWORD: "{{ settings['s3']['password'] }}"
+    state: started
+
+- name: create default bucket
+  amazon.aws.s3_bucket:
+    endpoint_url: "http://{{ settings['harvester_network_config']['dhcp_server']['ip']:9000/"
+    validate_certs: false
+    access_key: "{{ settings['s3']['username'] }}"
+    secret_key: "{{ settings['s3']['password'] }}"
+    name: backups
+    state: present

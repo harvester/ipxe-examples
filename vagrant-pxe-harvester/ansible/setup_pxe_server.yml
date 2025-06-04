@@ -14,3 +14,5 @@
     - role: harvester
     - role: proxy
       when: settings['harvester_network_config']['offline']
+    - role: s3
+      when: settings['s3']['enabled'] | bool
