@@ -138,3 +138,15 @@ rancher_config:
   password: password1234
   cpu: 2
   memory: 4096
+
+# Settings for an S3 backup target.
+# When enabled, this will spin up a Minio container on the PXE server, which can
+# act as a backup target.
+# The S3 service will be available at http://<dhcp-server-ip>:9000
+s3:
+  enabled: false
+  capacity: '300G'
+  port: 9000
+  console_port: 9001
+  username: admin
+  password: password1234

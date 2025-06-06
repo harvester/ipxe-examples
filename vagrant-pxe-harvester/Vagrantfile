@@ -29,7 +29,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   # PXE Server
   config.vm.define :pxe_server do |pxe_server|
-    pxe_server.vm.box = 'generic/debian10'
+    pxe_server.vm.box = 'generic/debian11'
     pxe_server.vm.hostname = 'pxe-server'
     pxe_server.vm.network 'private_network',
       ip: @settings['harvester_network_config']['dhcp_server']['ip'],
@@ -39,8 +39,21 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     pxe_server.vm.provider :libvirt do |libvirt|
       libvirt.cpu_mode = 'host-passthrough'
-      libvirt.memory = '1024'
-      libvirt.cpus = '1'
+
+      # If S3 backup target is enabled, allocate a little more CPU and memory
+      # and create a suitable storage volume
+      if @settings['s3']['enabled']
+        libvirt.memory = '4096'
+        libvirt.cpus = '2'
+        libvirt.storage :file,
+          size: @settings['s3']['capacity'],
+          type: 'qcow2',
+          bus: 'virtio',
+          device: 'vdb'
+      else
+        libvirt.memory = '1024'
+        libvirt.cpus = '1'
+      end
     end
 
     pxe_server.vm.provision :ansible do |ansible|
