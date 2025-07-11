@@ -8,9 +8,13 @@
   any_errors_fatal: true
   vars:
     kubeconfig: /etc/rancher/k3s/k3s.yaml
-  
+
   tasks:
-    - name: setup k3s 
+    - name: determine if Rancher to be installed needs devel flag or not
+      set_fact:
+        develflag: "{{ ' --devel' if settings.rancher_config.devel else '' }}"
+
+    - name: setup k3s
       shell: curl -sfL https://get.k3s.io | sh -
       environment:
         INSTALL_K3S_CHANNEL: "{{ settings.rancher_config.k3s_channel }}"
@@ -38,7 +42,7 @@
         helm install rancher rancher/rancher
         --namespace cattle-system
         --create-namespace
-        --version {{ settings.rancher_config.version }}
+        --version {{ settings.rancher_config.version }}{{ develflag }}
         --set bootstrapPassword={{ settings.rancher_config.password }}
         --set hostname={{ settings.rancher_config.hostname }}
       environment:

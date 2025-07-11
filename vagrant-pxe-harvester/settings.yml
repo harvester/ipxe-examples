@@ -48,7 +48,7 @@ harvester_network_config:
     dns_server: 1.1.1.1
 
   dns_servers:
-  # This is a list of DNS servers that will be included in your Harvester OS config
+    # This is a list of DNS servers that will be included in your Harvester OS config
     - 192.168.0.254
     - 8.8.8.8
 
@@ -124,7 +124,7 @@ harvester_node_config:
 #
 # Rancher setup on K3s cluster.
 # Refer support matrix on https://ranchermanager.docs.rancher.com/versions
-# 
+#
 rancher_config:
   enabled: false
 
@@ -138,6 +138,8 @@ rancher_config:
   password: password1234
   cpu: 2
   memory: 4096
+  # to allow for like "alpha" builds of Rancher
+  devel: false
 
 # Settings for an S3 backup target.
 # When enabled, this will spin up a Minio container on the PXE server, which can
@@ -145,7 +147,7 @@ rancher_config:
 # The S3 service will be available at http://<dhcp-server-ip>:9000
 s3:
   enabled: false
-  capacity: '300G'
+  capacity: "300G"
   port: 9000
   console_port: 9001
   username: admin
