@@ -26,7 +26,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # containerd is taking more than 60 seconds to shutdown in SUSE platforms
   # so increase the timeout to 120 seconds
   config.vm.graceful_halt_timeout = 120
-  
+
   # PXE Server
   config.vm.define :pxe_server do |pxe_server|
     pxe_server.vm.box = 'generic/debian11'
@@ -58,6 +58,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     pxe_server.vm.provision :ansible do |ansible|
       ansible.playbook = 'ansible/setup_pxe_server.yml'
+      ansible.verbose = @settings['overall_debug'] ? "-vvvv" : "-v"
       ansible.extra_vars = {
         settings: @settings
       }
@@ -81,7 +82,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.qemu_use_agent = true
         libvirt.mgmt_attach = false
         libvirt.cpu_mode = 'host-passthrough'
-        libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory'] 
+        libvirt.memory = @settings['harvester_network_config']['cluster'][node_number].key?('memory') ? @settings['harvester_network_config']['cluster'][node_number]['memory'] : @settings['harvester_node_config']['memory']
         libvirt.cpus = @settings['harvester_network_config']['cluster'][node_number].key?('cpu') ? @settings['harvester_network_config']['cluster'][node_number]['cpu'] : @settings['harvester_node_config']['cpu']
         libvirt.storage :file,
           size: @settings['harvester_network_config']['cluster'][node_number].key?('disk_size') ? @settings['harvester_network_config']['cluster'][node_number]['disk_size'] : @settings['harvester_node_config']['disk_size'],
@@ -123,6 +124,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       rancher.vm.provision :ansible do |ansible|
         ansible.playbook = 'ansible/setup_rancher.yml'
+        ansible.verbose = @settings['overall_debug'] ? "-vvvv" : "-v"
         ansible.extra_vars = {
           settings: @settings
         }
