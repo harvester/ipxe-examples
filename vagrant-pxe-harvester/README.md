@@ -41,6 +41,7 @@ At the time of writing this, latest version of Vagrant is 2.4.3.
     ```sh
     $ vagrant plugin install vagrant-libvirt
     ```
+    > Note: plugin installation does not require sudo
 
 ### Troubleshooting
 
@@ -120,6 +121,68 @@ Quick Start
     `settings.yml`.
 6.  Note, when starting up the VM's again, you need to specify the
     nodes explicitly, e.g. `vagrant up rancher pxe_server harvester-node-0 [harvester-node-X]`
+
+### Troubleshooting
+
+There might be situations where the playbook silently fails to download the necessary harvester files so virtual machines end up in bad state. In order to reduce the time it takes to debug the issue, download the harvester files in [settings.yaml](https://github.com/harvester/ipxe-examples/blob/main/vagrant-pxe-harvester/settings.yml) on your local filesystem.
+
+1. Cache the harvester components on your filesystem. Directly `curl` the files from the URLs in [settings.yaml](https://github.com/harvester/ipxe-examples/blob/main/vagrant-pxe-harvester/settings.yml):
+    ```yaml
+    harvester_iso_url: https://releases.rancher.com/harvester/master/harvester-master-amd64.iso
+    harvester_kernel_url: https://releases.rancher.com/harvester/master/harvester-master-vmlinuz-amd64
+    harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-master-initrd-amd64
+    harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-master-rootfs-amd64.squashfs
+    ```
+
+    For example:
+    ```bash
+    curl https://releases.rancher.com/harvester/master/harvester-master-amd64.iso --output harvester-master-amd64.iso
+    ...
+    ```
+
+    Augment the location to point to the file. Replace `{cache-dir-path}` with the directory where you cached all the files:
+    ```yaml
+    harvester_iso_url: file://{cache-dir-path}/harvester-master-amd64.iso
+    harvester_kernel_url: file://{cache-dir-path}/harvester-master-vmlinuz-amd64
+    harvester_ramdisk_url: file://{cache-dir-path}/harvester-master-initrd-amd64
+    harvester_rootfs_url: file://{cache-dir-path}/harvester-master-rootfs-amd64.squashfs
+    ```
+2. Check the status of the virtual machines. One might be in a bad state:
+    ```bash
+    sudo vagrant global-status
+    id       name             provider state   directory                                                                    
+    ------------------------------------------------------------------------------------------------------------------------
+    3ac6daa  pxe_server       libvirt running /github.com/harvester/ipxe-examples/vagrant-pxe-harvester 
+    c7a0673  harvester-node-0 libvirt shutoff /github.com/harvester/ipxe-examples/vagrant-pxe-harvester 
+    ```
+3. You can then use `virt-manager` to open GUI and check the virtual machine terminal to determine why `harvester-node-0` is in `shutoff` state.
+4. Make sure all necessary `harvester-*` files are inside the `pxe_server` folder note the `id` of the vm and ssh to it:
+    ```bash
+    vagrant@pxe-server:~$ ls /var/www/harvester/
+    02:00:00:0d:62:e2  02:00:00:35:86:92  config-create.yaml  config-join-2.yaml
+    02:00:00:2f:f2:2a  02:00:00:a7:e6:ff  config-join-1.yaml  config-join-3.yaml
+    ```
+5. If those are missing you can restart the process and boot up only the `pxe_server` to view more detailed information:
+    ```bash
+    sudo vagrant destroy -f
+    ```
+    And boot up pxe_server only:
+    ```bash
+    sudo vagrant up pxe_server
+    ```
+6. If this passes fine and now all the files are inside the virtual machine, ssh as previously and list the directory:
+    ```bash
+    vagrant@pxe-server:~$ ls /var/www/harvester/
+    02:00:00:0d:62:e2  02:00:00:35:86:92  config-create.yaml  config-join-2.yaml  harvester-amd64.iso     harvester-rootfs-amd64.squashfs
+    02:00:00:2f:f2:2a  02:00:00:a7:e6:ff  config-join-1.yaml  config-join-3.yaml  harvester-initrd-amd64  harvester-vmlinuz-amd64
+    ```
+    if `harvester-*` files are present you can directly continue installing everything:
+    ```bash
+    sudo ./setup_harvester.sh
+    ```
+
+The approaches and tools above can be used to debug and restart the installation for arbitrary issues.
+
 
 Acknowledgements
 ----------------
