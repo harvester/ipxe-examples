@@ -65,6 +65,9 @@ run the command again.
 In spite of installing `libvirt` and `libvirt-devel`, the error is complaining about their inexistence. Enable the debug mode:
 ```sh
 vagrant plugin install vagrant-libvirt --debug
+```
+
+```
 Building native extensions. This could take a while...
 Building native extensions. This could take a while...
 WARN manager: Failed to install plugin: ERROR: Failed to build gem native extension.
