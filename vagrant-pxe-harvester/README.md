@@ -96,8 +96,7 @@ It asks to look at `mkmf.log` file for more details. Exact path might differ on 
 ```
 If you do see that message, delete the file in question and try installing the pluging again:
 ```sh
- rm /opt/vagrant/embedded/lib/libreadline.so.8
-
+ rm /opt/vagrant/embedded/lib/libreadline.so.8 &&
  vagrant plugin install vagrant-libvirt 
 ```
 
