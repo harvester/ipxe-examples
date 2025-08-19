@@ -26,20 +26,20 @@ Vagrant documentation has a [section](https://developer.hashicorp.com/vagrant/in
 
 At the time of writing this, latest version of Vagrant is 2.4.3.
 
-1. Download the RPM from the [releases page](https://releases.hashicorp.com/vagrant/2.4.3/) and install it using
+1. Download the RPM from the [releases page](https://releases.hashicorp.com/vagrant/2.4.8/) and install it using
   `rpm -i`. Installing a package outside of the package management tool `zypper`
   will mark it for deletion on the next run of `zypper dist-upgrade`. To prevent
   this, add a lock using:
     ```sh
-    $ sudo zypper addlock vagrant
+    sudo zypper addlock vagrant
     ```
 2. Install dependencies for vagrant libvirt plugin which we need to create virtual machines:
     ```sh
-    $ sudo zypper install qemu libvirt libvirt-devel
+    sudo zypper install qemu libvirt libvirt-devel
     ```
 3. Install the plugin:
     ```sh
-    $ vagrant plugin install vagrant-libvirt
+    vagrant plugin install vagrant-libvirt
     ```
     > Note: plugin installation does not require sudo
 
@@ -64,7 +64,10 @@ run the command again.
 ```
 In spite of installing `libvirt` and `libvirt-devel`, the error is complaining about their inexistence. Enable the debug mode:
 ```sh
-$ vagrant plugin install vagrant-libvirt --debug
+vagrant plugin install vagrant-libvirt --debug
+```
+
+```
 Building native extensions. This could take a while...
 Building native extensions. This could take a while...
 WARN manager: Failed to install plugin: ERROR: Failed to build gem native extension.
@@ -93,9 +96,8 @@ It asks to look at `mkmf.log` file for more details. Exact path might differ on 
 ```
 If you do see that message, delete the file in question and try installing the pluging again:
 ```sh
-$ rm /opt/vagrant/embedded/lib/libreadline.so.8
-
-$ vagrant plugin install vagrant-libvirt 
+ rm /opt/vagrant/embedded/lib/libreadline.so.8 &&
+ vagrant plugin install vagrant-libvirt 
 ```
 
 Quick Start
