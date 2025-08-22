@@ -1,1 +1,5 @@
 .vagrant*
+*qcow
+*box
+*disks*
+*iso*
