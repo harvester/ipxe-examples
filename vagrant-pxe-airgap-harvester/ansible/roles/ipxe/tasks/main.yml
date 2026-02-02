@@ -9,5 +9,5 @@
     url: '{{ item }}'
     dest: /tftpboot/ipxe/
   loop:
-    - "http://boot.ipxe.org/ipxe.efi"
-    - "http://boot.ipxe.org/undionly.kpxe"
+    - "https://boot.ipxe.org/{{ {'aarch64': 'arm64'}.get(ansible_architecture, ansible_architecture) }}-efi/ipxe.efi"
+    - "https://boot.ipxe.org/undionly.kpxe"
