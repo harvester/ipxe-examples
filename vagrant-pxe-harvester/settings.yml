@@ -43,6 +43,10 @@ harvester_network_config:
     subnet: 192.168.0.0
     netmask: 255.255.255.0
     range: 192.168.0.50 192.168.0.130
+    cnet_ip: 192.168.124.254
+    cnet_subnet: 192.168.124.0
+    cnet_netmask: 255.255.255.0
+    cnet_range: 192.168.124.50 192.168.124.130
     https: false
     # Change this to a custom DNS server if you need one for your DHCP scope
     dns_server: 1.1.1.1
@@ -66,6 +70,8 @@ harvester_network_config:
       disk_size: 500G
       mgmt_nic: ens6
       mgmt_mac: 02:00:00:0D:62:E2
+      cnet_nic: ens7
+      cnet_mac: 02:00:00:0D:62:E3
     - ip: 192.168.0.31
       role: default
       cpu: 8
@@ -73,6 +79,8 @@ harvester_network_config:
       disk_size: 500G
       mgmt_nic: ens6
       mgmt_mac: 02:00:00:35:86:92
+      cnet_nic: ens7
+      cnet_mac: 02:00:00:35:86:93
     - ip: 192.168.0.32
       role: default
       cpu: 8
@@ -80,6 +88,8 @@ harvester_network_config:
       disk_size: 500G
       mgmt_nic: ens6
       mgmt_mac: 02:00:00:2F:F2:2A
+      cnet_nic: ens7
+      cnet_mac: 02:00:00:2F:F2:2B
     - ip: 192.168.0.33
       role: default
       cpu: 8
@@ -87,6 +97,8 @@ harvester_network_config:
       disk_size: 500G
       mgmt_nic: ens6
       mgmt_mac: 02:00:00:A7:E6:FF
+      cnet_nic: ens7
+      cnet_mac: 02:00:00:A7:E6:F0
 
 #
 # harvester_config

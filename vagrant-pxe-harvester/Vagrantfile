@@ -34,7 +34,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     pxe_server.vm.network 'private_network',
       ip: @settings['harvester_network_config']['dhcp_server']['ip'],
       libvirt__network_name: 'harvester',
-      # don't enable DHCP as this node will have it's now DHCP server for iPXE
+      # don't enable DHCP as this node will have its own DHCP server for iPXE
+      libvirt__dhcp_enabled: false
+    pxe_server.vm.network 'private_network',
+      ip: @settings['harvester_network_config']['dhcp_server']['cnet_ip'],
+      libvirt__network_name: 'harvester-cnet',
+      # don't enable DHCP as this node will have its own DHCP server for iPXE
       libvirt__dhcp_enabled: false
 
     pxe_server.vm.provider :libvirt do |libvirt|
@@ -73,6 +78,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       harvester_node.vm.network 'private_network',
         libvirt__network_name: 'harvester',
         mac: @settings['harvester_network_config']['cluster'][node_number]['mgmt_mac']
+      harvester_node.vm.network 'private_network',
+        libvirt__network_name: 'harvester-cnet',
+        mac: @settings['harvester_network_config']['cluster'][node_number]['cnet_mac']
 
       harvester_node.ssh.host = "#{@settings['harvester_network_config']['cluster'][node_number]['ip']}"
       harvester_node.ssh.username = "rancher"
