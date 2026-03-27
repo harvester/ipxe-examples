@@ -101,6 +101,88 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # NOTE: default to UEFI boot. Comment this out for legacy BIOS.
         libvirt.loader = loader_path
         libvirt.nic_model_type = 'e1000'
+
+        # Any node for which nvme_size is specified in settings.yml will
+        # automatically have one additional virtual NVMe disk created,
+        # which will appear as /dev/nvme0n1.  This can be useful for
+        # testing additional disks with Longhorn.  The way it works
+        # is a bit obscure because libvirt only seems to support virtio,
+        # scsi and sata disks, so we have to resort to hacking qemu
+        # arguments in as described in this blog post:
+        #
+        #   http://blog.frankenmichl.de/2018/02/13/add-nvme-device-to-vm/
+        #
+        # This means we have to go create the volume manually first with
+        # `virsh` then pass its path to qemu.  Matters are complicated
+        # further by volumes being owned by root by default, while libvirt
+        # runs VMs as the qemu user.  For normal libvirt volumes, file
+        # ownership changes happen automatically, but for these volumes
+        # we're hacking in by hand, that doesn't happen, so we have to
+        # explicitly specify ownership, and to do _that_ we have to
+        # define the volume via XML, hence the nasty `virsh vol-create-as
+        # ... | sed ... | virsh vol-create` invocation.
+        #
+        # The other wrinkle is that we need to know the exact path to
+        # the disk image.  Once a volume has been created, you can run
+        # `virsh vol-path --pool default VOLUME_NAME` to get the path,
+        # but we need to know the path when setting libvirt.qemuargs,
+        # whereas we don't want to actually create the volume until the
+        # `vagrant up` trigger for the node in question.  If we create
+        # the volume outside the trigger, it gets created on _every_
+        # evaluation of the Vagrant file, even for unrelated VMs...
+        # So, we call `virsh pool-dumpxml default` and get the pool
+        # path from that, then stick the volume name on the end.
+        if @settings['harvester_network_config']['cluster'][node_number].key?('nvme_size')
+
+          nvme0_name = "#{File.basename(@root_dir)}_#{vm_name}-nvme0.qcow2"
+          require 'nokogiri'
+          pool_path = Nokogiri::XML(%x(virsh -c qemu:///system pool-dumpxml default)).at_xpath('/pool/target/path').content
+          nvme0_path = File.join(pool_path, nvme0_name)
+
+          require 'etc'
+          storage_owner = begin
+            Etc.getpwnam('qemu')
+          rescue ArgumentError
+            # Just in case the qemu user doesn't exist, fall back to root
+            # and hope it works :-/
+            Etc.getpwnam('root')
+          end
+
+          libvirt.qemuargs :value => '-drive'
+          libvirt.qemuargs :value => "file=#{nvme0_path},if=none,id=nvme0"
+          libvirt.qemuargs :value => '-device'
+          # "addr 10" below is arbitrary and is intended to avoid the following
+          # error which occurs if addr is not specified:
+          #   /usr/lib64/ruby/gems/2.5.0/gems/fog-libvirt-0.7.0/lib/fog/libvirt/requests/compute/vm_action.rb:7:
+          #   in `create': Call to virDomainCreateWithFlags failed: internal error:
+          #   process exited while connecting to monitor: 2024-11-01T05:46:54.478063Z
+          #   qemu-system-x86_64: -device {"driver":"cirrus-vga","id":"video0","bus":
+          #   "pci.0","addr":"0x2"}: PCI: slot 2 function 0 not available for cirrus-vga,
+          #   in use by nvme,id=(null) (Libvirt::Error)
+          libvirt.qemuargs :value => "nvme,addr=10,drive=nvme0,serial=#{node_number}_1234"
+
+          harvester_node.trigger.before :up do |trigger|
+            trigger.warn = "Creating volume #{nvme0_name}"
+            # `virsh vol-info ... ` at the start ensures we skip the call to
+            # `virsh vol-create` if the volume already exists
+            trigger.run = {inline: "sh -c \"\
+              export LIBVIRT_DEFAULT_URI=qemu:///system ; \
+              virsh vol-info --pool=default #{nvme0_name} >/dev/null 2>&1 || \
+              virsh vol-create-as default #{nvme0_name} \
+                    --capacity #{@settings['harvester_network_config']['cluster'][node_number]['nvme_size']} \
+                    --format qcow2 --print-xml | \
+              sed '/<target>/a <permissions><owner>#{storage_owner.uid}</owner><group>#{storage_owner.gid}</group></permissions>' | \
+              virsh vol-create default /dev/stdin 2>&1\""}
+          end
+
+          harvester_node.trigger.after :destroy do |trigger|
+            trigger.warn = "Destroying volume #{nvme0_name}"
+            # `|| :`` on the end here means that we don't abort the Vagrant
+            # run even if the volume doesn't exist or deletion fails (an error
+            # will still be logged to the console)
+            trigger.run = {inline: "sh -c \"virsh -c qemu:///system vol-delete --pool default #{nvme0_name} || :\""}
+          end
+        end
       end
     end
   end
