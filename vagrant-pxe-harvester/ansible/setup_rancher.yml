@@ -8,15 +8,45 @@
   any_errors_fatal: true
   vars:
     kubeconfig: /etc/rancher/k3s/k3s.yaml
-  
-  tasks:
-    - name: setup k3s 
-      shell: curl -sfL https://get.k3s.io | sh -
-      environment:
-        INSTALL_K3S_CHANNEL: "{{ settings.rancher_config.k3s_channel }}"
 
-    - name: setup helm
-      shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  tasks:
+    - name: Download k3s binary
+      get_url:
+        url: "https://github.com/k3s-io/k3s/releases/download/{{ settings.rancher_config.k3s_version }}/k3s"
+        dest: /usr/local/bin/k3s
+        mode: "0755"
+        checksum: "{{ settings.rancher_config.k3s_checksum }}"
+
+    - name: Download k3s install script
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: "0755"
+
+    - name: Install k3s using install script with pre-downloaded binary
+      shell: INSTALL_K3S_SKIP_DOWNLOAD=true /tmp/k3s-install.sh
+      environment:
+        INSTALL_K3S_VERSION: "{{ settings.rancher_config.k3s_version }}"
+        INSTALL_K3S_BIN_DIR: /usr/local/bin
+
+    - name: Download helm tarball
+      get_url:
+        url: "https://get.helm.sh/helm-{{ settings.rancher_config.helm_version }}-linux-amd64.tar.gz"
+        dest: /tmp/helm.tar.gz
+        checksum: "{{ settings.rancher_config.helm_checksum }}"
+
+    - name: Extract helm tarball
+      unarchive:
+        src: /tmp/helm.tar.gz
+        dest: /tmp
+        remote_src: yes
+
+    - name: Install helm binary
+      copy:
+        src: /tmp/linux-amd64/helm
+        dest: /usr/local/bin/helm
+        mode: "0755"
+        remote_src: yes
 
     - name: update repo
       shell: |

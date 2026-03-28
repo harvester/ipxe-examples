@@ -1,7 +1,0 @@
----
-- name: restart tftp
-  systemd:
-    name: tftpd-hpa
-    state: restarted
-    daemon_reload: yes
-    enabled: yes

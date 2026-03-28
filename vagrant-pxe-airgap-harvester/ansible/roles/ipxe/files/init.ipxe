@@ -1,7 +1,0 @@
-#!ipxe
-:loop
-echo ipxe is working !
-sleep 5 && goto load
-
-:load
-chain ipxe-create.ipxe || goto loop
