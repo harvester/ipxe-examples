@@ -111,7 +111,45 @@ initrd http://192.168.122.1:6665/harvester/v1.8.0-rc6/harvester-v1.8.0-rc6-initr
 boot
 ```
 
-> `dhcp` must be the first command. iPXE initializes its own network stack independently from UEFI — without it, all HTTP requests will fail with `Network unreachable`.
+`dhcp` must be the first command. iPXE initializes its own network stack independently from UEFI — without it, all HTTP requests will fail with `Network unreachable`.
+
+### config_url is optional
+
+`harvester.install.config_url` is **not required**. All Harvester configuration can be passed directly as kernel boot parameters on the `kernel` line instead. This avoids hosting a separate YAML file entirely.
+
+The following is **an example** of a fully inline `kernel` line:
+
+```bash
+#!ipxe
+
+dhcp
+
+kernel http://192.168.0.122:6665/harvester/v1.8.0-rc6/harvester-v1.8.0-rc6-vmlinuz-amd64 \
+  ip=dhcp rd.net.dhcp.retry=30 rd.cos.disable rd.noverifyssl net.ifnames=1 \
+  root=live:http://192.168.0.122:6665/harvester/v1.8.0-rc6/harvester-v1.8.0-rc6-rootfs-amd64.squashfs \
+  console=tty1 \
+  harvester.scheme_version=1 \
+  harvester.token=t \
+  harvester.os.hostname=harvester1 \
+  harvester.os.password=p \
+  harvester.os.dns_nameservers="8.8.8.8" \
+  harvester.os.ntp_servers="0.suse.pool.ntp.org,1.suse.pool.ntp.org" \
+  harvester.install.mode=create \
+  harvester.install.management_interface.interfaces="name:enp1s0" \
+  harvester.install.management_interface.default_route=true \
+  harvester.install.management_interface.method=dhcp \
+  harvester.install.management_interface.bond_options.mode="active-backup" \
+  harvester.install.management_interface.bond_options.miimon="100" \
+  harvester.install.device=/dev/vda \
+  harvester.install.iso_url=http://192.168.0.122:6665/harvester/v1.8.0-rc6/harvester-v1.8.0-rc6-amd64.iso \
+  harvester.install.vip=192.168.122.100 \
+  harvester.install.vip_mode=static \
+  harvester.install.automatic=true
+initrd http://192.168.0.122:6665/harvester/v1.8.0-rc6/harvester-v1.8.0-rc6-initrd-amd64
+boot
+```
+
+All `harvester.*` keys are kernel boot parameters used by the Harvester installer.
 
 ---
 
