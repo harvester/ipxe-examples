@@ -46,5 +46,5 @@
     url: "{{ harvester_media_url }}"
     dest: /var/www/harvester/{{ media_filename }}
     checksum: "sha512:{{ expected_checksum }}"
-    timeout: "{{ harvester_iso_download_and_sha512_check_timeout_seconds }}"
+    timeout: "{{ settings['harvester_iso_download_and_sha512_check_timeout_seconds'] }}"
   when: harvester_download_url_facts['scheme']|lower != 'file'

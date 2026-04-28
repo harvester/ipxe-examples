@@ -32,31 +32,6 @@ harvester_ramdisk_url: https://releases.rancher.com/harvester/master/harvester-m
 harvester_rootfs_url: https://releases.rancher.com/harvester/master/harvester-master-rootfs-amd64.squashfs
 # Defaults to 45 minutes to allow for iso to be downloaded and checksum sha512 to be utilized
 harvester_iso_download_and_sha512_check_timeout_seconds: 2700
-#
-# ipxe_config
-#
-# iPXE bootloader configuration. These binaries are vendored (downloaded once and
-# hosted on the artifact server) with SHA256 checksums for verification.
-#
-# Version: iPXE 2.0.0+ (g6d2f6) - downloaded from boot.ipxe.org on 2026-03-27
-#
-# Set ipxe_artifact_server to empty string to use boot.ipxe.org directly , we shouldn't
-#
-ipxe_config:
-  # Empty = use boot.ipxe.org directly (not recommended)
-  artifact_server: "http://10.115.1.6/iso/ipxe-binaries-for-vagrant/2026-03-27/"
-
-  # iPXE binaries and their SHA256 checksums
-  binaries:
-    x86_64_efi:
-      filename: ipxe-x86_64.efi
-      sha256: 1870e795866bb51b93093379d7d277245d60cdd622315695a5502077e20ed853
-    arm64_efi:
-      filename: ipxe-arm64.efi
-      sha256: 12dfb3b107e3d2212d44f60ce930d06990bcbf9dde1f7f2bbe2531933d4cb922
-    undionly:
-      filename: undionly.kpxe
-      sha256: 67ef19d18c6b4b9f00fa0429ade8b6a282bd1c222db2fa4a83e836ffe0c06706
 
 #
 # harvester_cluster_nodes

@@ -4,38 +4,20 @@
     path: /tftpboot/ipxe
     state: directory
 
-- name: determine architecture for iPXE EFI binary
-  set_fact:
-    ipxe_arch: "{{ {'aarch64': 'arm64'}.get(ansible_architecture, ansible_architecture) }}"
+- name: install ipxe package
+  ansible.builtin.package:
+    name: ipxe
+    state: present
 
-- name: determine which iPXE EFI binary to use
-  set_fact:
-    ipxe_efi_binary: "{{ 'arm64_efi' if ipxe_arch == 'arm64' else 'x86_64_efi' }}"
-
-# Download from artifact server with checksum verification
-- name: download iPXE EFI binary from artifact server
-  get_url:
-    url: "{{ settings['ipxe_config']['artifact_server'] }}/{{ settings['ipxe_config']['binaries'][ipxe_efi_binary]['filename'] }}"
+- name: copy ipxe to /tftpboot
+  ansible.builtin.copy:
+    src: /usr/lib/ipxe/ipxe.efi
     dest: /tftpboot/ipxe/ipxe.efi
-    checksum: "sha256:{{ settings['ipxe_config']['binaries'][ipxe_efi_binary]['sha256'] }}"
-  when: settings['ipxe_config']['artifact_server'] != ''
+    local_follow: true
+    remote_src: true
 
-- name: download iPXE undionly binary from artifact server
-  get_url:
-    url: "{{ settings['ipxe_config']['artifact_server'] }}/{{ settings['ipxe_config']['binaries']['undionly']['filename'] }}"
+- name: copy undionly.kpxe to /tftpboot
+  ansible.builtin.copy:
+    src: /usr/lib/ipxe/undionly.kpxe
     dest: /tftpboot/ipxe/undionly.kpxe
-    checksum: "sha256:{{ settings['ipxe_config']['binaries']['undionly']['sha256'] }}"
-  when: settings['ipxe_config']['artifact_server'] != ''
-
-# Fallback to boot.ipxe.org without verification we want to avoid this if at all possible
-- name: download iPXE EFI binary from boot.ipxe.org (no checksum verification)
-  get_url:
-    url: "https://boot.ipxe.org/{{ ipxe_arch }}-efi/ipxe.efi"
-    dest: /tftpboot/ipxe/ipxe.efi
-  when: settings['ipxe_config']['artifact_server'] == ''
-
-- name: download iPXE undionly binary from boot.ipxe.org (no checksum verification)
-  get_url:
-    url: "https://boot.ipxe.org/undionly.kpxe"
-    dest: /tftpboot/ipxe/undionly.kpxe
-  when: settings['ipxe_config']['artifact_server'] == ''
+    remote_src: true
