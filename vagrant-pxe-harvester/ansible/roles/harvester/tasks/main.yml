@@ -43,22 +43,19 @@
     dest: /tmp/harvester.sha512
   when: harvester_sha512_url_facts['scheme']|lower != 'file'
 
-- name: copy Harvester SHA512 checksum file from local
-  copy:
-    src: "{{ harvester_sha512_url_facts['path'] }}"
-    dest: /tmp/harvester.sha512
-  when: harvester_sha512_url_facts['scheme']|lower == 'file'
-
 - name: read SHA512 checksum file
   slurp:
     src: /tmp/harvester.sha512
   register: sha512_content
+  when: harvester_sha512_url_facts['scheme']|lower != 'file'
 
 - name: parse SHA512 checksums into dictionary (line splitting)
   set_fact:
     harvester_checksums: "{{ harvester_checksums | default({}) | combine({item.split()[1]: item.split()[0]}) }}"
   loop: "{{ (sha512_content['content'] | b64decode).splitlines() }}"
-  when: item | trim | length > 0
+  when:
+    - item | trim | length > 0
+    - harvester_sha512_url_facts['scheme']|lower != 'file'
 
 - name: create boot entry for the first node
   template:
