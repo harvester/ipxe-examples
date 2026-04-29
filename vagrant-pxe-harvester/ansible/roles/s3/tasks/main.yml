@@ -17,7 +17,7 @@
     path: /data
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
     state: directory
 
 - name: mount backup target filesystem
@@ -30,7 +30,7 @@
 - name: start minio container
   containers.podman.podman_container:
     name: minio
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio@{{ settings['s3']['tagged_release_sha256sum'] }}
     command:
       - server
       - /data

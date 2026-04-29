@@ -4,10 +4,20 @@
     path: /tftpboot/ipxe
     state: directory
 
-- name: install ipxe firmwares
-  get_url:
-    url: '{{ item }}'
-    dest: /tftpboot/ipxe/
-  loop:
-    - "https://boot.ipxe.org/{{ {'aarch64': 'arm64'}.get(ansible_architecture, ansible_architecture) }}-efi/ipxe.efi"
-    - "https://boot.ipxe.org/undionly.kpxe"
+- name: install ipxe package
+  ansible.builtin.package:
+    name: ipxe
+    state: present
+
+- name: copy ipxe to /tftpboot
+  ansible.builtin.copy:
+    src: /usr/lib/ipxe/ipxe.efi
+    dest: /tftpboot/ipxe/ipxe.efi
+    local_follow: true
+    remote_src: true
+
+- name: copy undionly.kpxe to /tftpboot
+  ansible.builtin.copy:
+    src: /usr/lib/ipxe/undionly.kpxe
+    dest: /tftpboot/ipxe/undionly.kpxe
+    remote_src: true

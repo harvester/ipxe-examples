@@ -1,4 +1,0 @@
----
-dependencies:
-  - role: http
-    when: settings['harvester_network_config']['dhcp_server']['https'] | bool == true

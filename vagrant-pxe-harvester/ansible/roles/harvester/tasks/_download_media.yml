@@ -3,14 +3,48 @@
   set_fact:
     harvester_download_url_facts: "{{ harvester_media_url | urlsplit }}"
 
+- name: extract filename from URL for checksum lookup
+  set_fact:
+    media_basename: "{{ harvester_media_url | basename }}"
+
+- name: get expected checksum for this media file
+  set_fact:
+    expected_checksum: "{{ harvester_checksums[media_basename] | default('') }}"
+
+- name: verify checksum is available
+  fail:
+    msg: "No SHA512 checksum found for {{ media_basename }} in the checksum file"
+  when: expected_checksum == ''
+
 - name: copy Harvester media from local directory
   copy:
     src: "{{ harvester_download_url_facts['path'] }}"
     dest: /var/www/harvester/{{ media_filename }}
   when: harvester_download_url_facts['scheme']|lower == 'file'
 
-- name: download Harvester media
+- name: verify checksum of copied local file
+  stat:
+    path: /var/www/harvester/{{ media_filename }}
+    checksum_algorithm: sha512
+  register: local_file_stat
+  when: harvester_download_url_facts['scheme']|lower == 'file'
+
+- name: fail if local file checksum doesn't match
+  fail:
+    msg: "Checksum mismatch for {{ media_filename }}. Expected: {{ expected_checksum }}, Got: {{ local_file_stat.stat.checksum }}"
+  when:
+    - harvester_download_url_facts['scheme']|lower == 'file'
+    - local_file_stat.stat.checksum != expected_checksum
+
+- name: debug - downloading from remote
+  debug:
+    msg: "Downloading from: {{ harvester_media_url }} to /var/www/harvester/{{ media_filename }} with checksum verification"
+  when: harvester_download_url_facts['scheme']|lower != 'file'
+
+- name: download Harvester media with checksum verification
   get_url:
     url: "{{ harvester_media_url }}"
     dest: /var/www/harvester/{{ media_filename }}
+    checksum: "sha512:{{ expected_checksum }}"
+    timeout: "{{ settings['harvester_iso_download_and_sha512_check_timeout_seconds'] }}"
   when: harvester_download_url_facts['scheme']|lower != 'file'

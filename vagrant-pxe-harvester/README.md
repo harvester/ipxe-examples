@@ -43,6 +43,31 @@ At the time of writing this, latest version of Vagrant is 2.4.3.
     ```
     > Note: plugin installation does not require sudo
 
+### ipxe examples shifting to being vendor-ized
+- ipxe doesn't publish anything with checksums
+- we can however try to utilize a file-server that exists somewhere to provide a "tag" we create when we download the files
+- we don't necessarily have to build from source
+- each file is given a checksum
+- we pull that file and audit the checksum across the wire
+- discouraged: but will provide doing default boot.ipxe.org
+- downloading of the ipxe artifacts as a dependency that is vendored w/ a sha256 to a local file-server or something different will work too, adjusting the settings.yml will need to be updated
+
+If wanting to bump to a newer/latest version of ipxe binaries we will just vendor them here on our artifact server
+
+1. Download the new binaries in a new folder like 2026-03-27:
+   ```bash
+   curl -o ipxe-x86_64.efi https://boot.ipxe.org/x86_64-efi/ipxe.efi
+   curl -o ipxe-arm64.efi https://boot.ipxe.org/arm64-efi/ipxe.efi
+   curl -o undionly.kpxe https://boot.ipxe.org/undionly.kpxe
+   ```
+
+2. Calculate checksums:
+   ```bash
+   sha256sum ipxe-x86_64.efi ipxe-arm64.efi undionly.kpxe
+   ```
+
+3. Update `settings.yml` with new checksums
+
 ### Troubleshooting
 
 A common error while attempting to install vagrant-libvirt plugin is:
@@ -97,7 +122,7 @@ It asks to look at `mkmf.log` file for more details. Exact path might differ on 
 If you do see that message, delete the file in question and try installing the pluging again:
 ```sh
  rm /opt/vagrant/embedded/lib/libreadline.so.8 &&
- vagrant plugin install vagrant-libvirt 
+ vagrant plugin install vagrant-libvirt
 ```
 
 Quick Start
@@ -152,10 +177,10 @@ There might be situations where the playbook silently fails to download the nece
 2. Check the status of the virtual machines. One might be in a bad state:
     ```bash
     sudo vagrant global-status
-    id       name             provider state   directory                                                                    
+    id       name             provider state   directory
     ------------------------------------------------------------------------------------------------------------------------
-    3ac6daa  pxe_server       libvirt running /github.com/harvester/ipxe-examples/vagrant-pxe-harvester 
-    c7a0673  harvester-node-0 libvirt shutoff /github.com/harvester/ipxe-examples/vagrant-pxe-harvester 
+    3ac6daa  pxe_server       libvirt running /github.com/harvester/ipxe-examples/vagrant-pxe-harvester
+    c7a0673  harvester-node-0 libvirt shutoff /github.com/harvester/ipxe-examples/vagrant-pxe-harvester
     ```
 3. You can then use `virt-manager` to open GUI and check the virtual machine terminal to determine why `harvester-node-0` is in `shutoff` state.
 4. Make sure all necessary `harvester-*` files are inside the `pxe_server` folder note the `id` of the vm and ssh to it:
