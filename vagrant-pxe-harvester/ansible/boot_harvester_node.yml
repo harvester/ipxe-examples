@@ -18,7 +18,7 @@
 
 - name: boot Harvester Node {{ node_number }}
   shell: >
-    vagrant up harvester-node-{{ node_number }}
+    {{ vagrantlognested }} vagrant up harvester-node-{{ node_number }}
   register: harvester_node_boot_result
 
 # Check node get ready

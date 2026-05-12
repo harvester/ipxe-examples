@@ -41,6 +41,12 @@ harvester_iso_download_and_sha512_check_timeout_seconds: 2700
 harvester_cluster_nodes: 3
 
 #
+# extra helper flags
+#
+# Helper flags that can assist in providing input for the overall install
+overall_debug: false
+
+#
 # network_config
 #
 # Harvester network configurations.
