@@ -1,0 +1,61 @@
+---
+- name: Setup Harvester
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+  - name: copy config-create.yaml
+    template:
+      src: "_create.yaml.j2"
+      dest: "/tmp/create.yaml"
+
+  - name: set node sequence fact
+    set_fact:
+      end_sequence: "{{ harvester_cluster_nodes - 1 if harvester_cluster_nodes > 1 else 1 }}"
+
+  - name: copy config-join.yaml
+    template:
+      src: "_join.yaml.j2"
+      dest: "/tmp/join-{{ item }}.yaml"
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: "start=1 end={{ end_sequence }}"
+
+  - name: create directory for disks
+    file:
+      path: ../disks
+      mode: '0755'
+      state: directory
+
+  - name: generate create iso
+    shell: cloud-localds -v ../disks/create.iso /tmp/create.yaml
+
+  - name: generate join iso
+    shell: "cloud-localds -v ../disks/join-{{ item }}.iso /tmp/join-{{ item }}.yaml"
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: "start=1 end={{ end_sequence }}"
+
+  - name: setup harvester images
+    include: _download_media.yml
+    vars:
+      harvester_media_url: "{{ harvester_qcow_url }}"
+    tags:
+      - packagebox  
+
+  - name: boot Harvester nodes
+    include: boot_harvester_node.yml
+    vars:
+      node_number: "{{ item }}"
+    with_sequence: 0-{{ harvester_cluster_nodes - 1 if harvester_cluster_nodes > 1 else 0 }}
+
+  - name: create "Installation Completed" message
+    shell: >
+      figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
+    register: figlet_result
+
+  - name: print "Installation Completed"
+    debug:
+      msg: "{{ figlet_result.stdout }}"
+

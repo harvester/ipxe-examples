@@ -1,0 +1,36 @@
+#cloud-config
+token: {{ harvester_config['token'] }}
+os:
+  hostname: harvester-node-0
+  ssh_authorized_keys:
+{% for ssh_key in harvester_config['ssh_authorized_keys'] %}
+    - {{ ssh_key }}
+{% endfor %}
+  password: {{ harvester_config['password'] }}
+  ntp_servers:
+{% for ntp_server in harvester_config['ntp_servers'] %}
+    - {{ ntp_server }}
+{% endfor %}
+  dns_nameservers:
+{% for dns_server in harvester_config['dns_servers'] %}
+    - {{ dns_server }}
+{% endfor %}
+install:
+  automatic: true
+  mode: create
+  networks:
+    harvester-mgmt:
+      interfaces:
+      - name: {{ harvester_network_config['cluster'][0]['mgmt_interface'] }} 
+      method: static
+      ip: {{ harvester_network_config['cluster'][0]['ip'] }}
+      gateway: {{ harvester_network_config['dhcp_server']['gateway'] }}
+      subnetMask: 255.255.255.0
+    bond0:
+      interfaces:
+      - name: {{ harvester_network_config['cluster'][0]['vagrant_interface'] }}
+      method: dhcp
+  tty: ttyS0
+  vip: {{ harvester_network_config['vip']['ip'] }}
+  vip_mode: {{ harvester_network_config['vip']['mode'] }}
+  vip_hw_addr: {{ harvester_network_config['vip']['mac'] }}

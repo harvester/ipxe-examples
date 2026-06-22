@@ -1,0 +1,27 @@
+---
+- name: Reinstall Harvester Node
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+  - name: create "Reinstalling Harvester Node" message
+    shell: >
+      figlet "Reinstalling Harvester Node {{ node_number }}" 2>/dev/null || echo "Reinstalling Harvester Node {{ node_number }}"
+    register: figlet_result
+
+  - name: print "Reinstalling Harvester Node" message
+    debug:
+      msg: "{{ figlet_result.stdout }}"
+
+  - name: boot Harvester nodes
+    include: boot_harvester_node.yml
+
+  - name: create "Installation Completed" message
+    shell: >
+      figlet "Installation Completed" 2>/dev/null || echo "Installation Completed"
+    register: figlet_result
+
+  - name: print "Installation Completed"
+    debug:
+      msg: "{{ figlet_result.stdout }}"
