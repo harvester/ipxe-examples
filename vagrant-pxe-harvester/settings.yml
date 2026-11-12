@@ -173,5 +173,14 @@ s3:
   console_port: 9001
   username: admin
   password: password1234
-  # RELEASE.2025-09-07T16-13-09Z
-  tagged_release_sha256sum: sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
+  # Upstream MinIO no longer publishes images, so we use SUSE Rancher AppCo
+  # (see https://apps.rancher.io/applications/minio) by default.
+  # Any image reference is accepted, e.g. "<repository>:<tag>" or
+  # "<repository>@sha256:<digest>".
+  image: dp.apps.rancher.io/containers/minio@sha256:61413b5a08c58402ce70471ae27ffda5a6f2f57dacb7be8a1233f0e04d8882c0
+  # Optional credentials for pulling the image from a private registry.
+  # Leave username empty for anonymous pulls.
+  # NOTE, credentials are required for MinIO from dp.apps.rancher.io
+  # (see https://apps.rancher.io/settings/access-tokens).
+  registry_username: ""
+  registry_password: ""

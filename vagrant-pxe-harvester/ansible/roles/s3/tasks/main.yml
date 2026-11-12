@@ -27,10 +27,21 @@
     fstype: xfs
     state: mounted
 
+- name: login to container registry
+  containers.podman.podman_login:
+    registry: "{{ settings['s3']['image'].split('/')[0] }}"
+    username: "{{ settings['s3']['registry_username'] }}"
+    password: "{{ settings['s3']['registry_password'] | default('', true) }}"
+  when: settings['s3']['registry_username'] | default('', true) | length > 0
+  no_log: true
+
 - name: start minio container
   containers.podman.podman_container:
     name: minio
-    image: quay.io/minio/minio@{{ settings['s3']['tagged_release_sha256sum'] }}
+    image: "{{ settings['s3']['image'] }}"
+    # Run as root so images with a non-root default user (e.g. AppCo, UID 1000)
+    # can write to the root-owned /data
+    user: root
     command:
       - server
       - /data
